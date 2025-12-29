@@ -6,16 +6,53 @@ import 'dart:convert';
 import 'package:geolocator/geolocator.dart';
 import 'dart:io' show Platform;
 import 'package:url_launcher/url_launcher.dart';
+import 'constants/translator.dart';
 
 void main() {
   runApp(const MaterialApp(
     debugShowCheckedModeBanner: false,
-    home: PickUpMap(),
+    home: PickUpApp(),
   ));
 }
 
+class PickUpApp extends StatefulWidget {
+  const PickUpApp({super.key});
+
+  @override
+  State<PickUpApp> createState() => _PickUpAppState();
+}
+
+class _PickUpAppState extends State<PickUpApp> {
+  bool _isDarkMode = false; // Stato globale del tema
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      // Questa riga permette all'app di cambiare tema istantaneamente
+      theme: ThemeData(
+        brightness: _isDarkMode ? Brightness.dark : Brightness.light,
+        colorSchemeSeed: Colors.blueAccent,
+        useMaterial3: true,
+      ),
+      // Passiamo lo stato e la funzione per cambiarlo alla mappa
+      home: PickUpMap(
+        isDarkMode: _isDarkMode,
+        onThemeChanged: (bool val) {
+          setState(() {
+            _isDarkMode = val;
+          });
+        },
+      ),
+    );
+  }
+}
+
 class PickUpMap extends StatefulWidget {
-  const PickUpMap({super.key});
+  final bool isDarkMode;
+  final Function(bool) onThemeChanged;
+
+  const PickUpMap({super.key, required this.isDarkMode, required this.onThemeChanged});
 
   @override
   State<PickUpMap> createState() => _PickUpMapState();
@@ -34,6 +71,10 @@ class _PickUpMapState extends State<PickUpMap> {
   LatLng _currentMapCenter = milanDefault;
   bool _showSearchButton = false;
   bool _isLoading = false;
+
+  double _searchRadius = 10.0; // Per il raggio di ricerca
+  String _selectedUnit = 'km'; // Per l'unità di misura
+  String _preferredNav = 'Google Maps'; // Per il navigatore
 
   @override
   void initState() {
@@ -109,7 +150,8 @@ class _PickUpMapState extends State<PickUpMap> {
   }
 
   void _moveToLocation(LatLng target, [bool isInitial = false]) {
-    if (mounted) {
+    if (!mounted) return;
+
       setState(() => _currentMapCenter = target);
       _mapController.move(target, 14.5);
       
@@ -125,7 +167,7 @@ class _PickUpMapState extends State<PickUpMap> {
           });
         }
       });
-    }
+    
   }
 
   // Funzione per assegnare l'icona corretta in base allo sport
@@ -294,15 +336,14 @@ class _PickUpMapState extends State<PickUpMap> {
         }
       }
     } catch (e) {
-      debugPrint("API Error: $e");
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   void _showCourtDetails(double lat, double lon, Map<String, dynamic> tags) {
-    String name = tags['name'] ?? "Campo sportivo";
-    String sport = (tags['sport'] ?? "Sconosciuto").toString().toUpperCase();
+    String name = tags['name'] ?? Translator.of('unknown');
+    String sport = (tags['sport'] ?? Translator.of('unknown')).toString().toUpperCase();
     
     // 1. Recupero Indirizzo
     String address = _formatAddress(tags);
@@ -328,10 +369,10 @@ class _PickUpMapState extends State<PickUpMap> {
             const Divider(height: 30),
 
             // Riga Indirizzo
-            _buildDetailRow(Icons.location_on, "Indirizzo", address),
+            _buildDetailRow(Icons.location_on, Translator.of('address'), address),
             
             // Riga Superficie (già presente)
-            _buildDetailRow(Icons.layers, "Superficie", tags['surface'] ?? "Non specificata"),
+            _buildDetailRow(Icons.layers, Translator.of('surface'), tags['surface'] ?? Translator.of('not_specified')),
 
             // 3. Riga Sito Web (mostrata solo se esiste)
             if (website != null)
@@ -345,7 +386,7 @@ class _PickUpMapState extends State<PickUpMap> {
                     children: [
                       const Icon(Icons.language, size: 20, color: Colors.blueAccent),
                       const SizedBox(width: 12),
-                      const Text("Sito Web: ", style: TextStyle(fontWeight: FontWeight.bold)),
+                      Text("${Translator.of('website')}: ", style: TextStyle(fontWeight: FontWeight.bold)),
                       Expanded(child: Text(website, style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline), overflow: TextOverflow.ellipsis)),
                     ],
                   ),
@@ -365,7 +406,7 @@ class _PickUpMapState extends State<PickUpMap> {
                     children: [
                       const Icon(Icons.phone, size: 20, color: Colors.green),
                       const SizedBox(width: 12),
-                      const Text("Telefono: ", style: TextStyle(fontWeight: FontWeight.bold)),
+                      Text("${Translator.of('phone')}: ", style: TextStyle(fontWeight: FontWeight.bold)),
                       Expanded(child: Text(phone, style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline), overflow: TextOverflow.ellipsis)),
                     ],
                   ),
@@ -385,7 +426,7 @@ class _PickUpMapState extends State<PickUpMap> {
                 _openMap(lat, lon);
               },
               icon: const Icon(Icons.directions, color: Colors.white),
-              label: const Text("Portami qui", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              label: Text(Translator.of('take_me_here'), style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             )
           ],
         ),
@@ -425,7 +466,7 @@ class _PickUpMapState extends State<PickUpMap> {
     final housenumber = tags['addr:housenumber'] ?? '';
     final city = tags['addr:city'] ?? '';
     
-    if (street.isEmpty && city.isEmpty) return "Indirizzo non disponibile";
+    if (street.isEmpty && city.isEmpty) return Translator.of('address_not_available');
     
     // Unisce i pezzi: "Via Roma, 10, Milano"
     return [
@@ -438,26 +479,125 @@ class _PickUpMapState extends State<PickUpMap> {
   Future<void> _launchURL(String urlString) async {
     final Uri url = Uri.parse(urlString);
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      debugPrint("Impossibile aprire $urlString");
     }
   }
 
   Future<void> _openMap(double lat, double lon) async {
     Uri url;
 
-    if (Platform.isIOS) {
-      // Schema specifico per Apple Maps su iOS
+    if (_preferredNav == 'Apple Maps') {
+      // Forza Apple Maps (utile se l'utente è su iOS o preferisce il link Apple)
       url = Uri.parse("https://maps.apple.com/?q=$lat,$lon");
     } else {
-      // Schema universale per Google Maps (funziona bene su Android)
+      // Default: Google Maps (funziona tramite browser su iOS o app su Android)
       url = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lon");
     }
 
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } else {
-      throw 'Impossibile aprire la mappa.';
+      final fallbackUrl = Uri.parse("geo:$lat,$lon?q=$lat,$lon");
+      if (await canLaunchUrl(fallbackUrl)) {
+        await launchUrl(fallbackUrl);
+      } else {
+        throw Translator.of('error_open_map');
+      }
     }
+  }
+
+  void _showSettingsDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        // Usiamo StatefulBuilder per permettere ai widget (switch, slider) 
+        // di aggiornarsi graficamente mentre il popup è aperto
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Row(
+                children: [
+                  const Icon(Icons.settings, color: Colors.blueAccent),
+                  const SizedBox(width: 10),
+                  Text(Translator.of('settings')),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // DARK MODE
+                    SwitchListTile(
+                      title: Text(Translator.of('dark_mode')),
+                      value: widget.isDarkMode,
+                      onChanged: (bool value) {
+                        widget.onThemeChanged(value);
+                        setDialogState(() {}); // Aggiorna il popup
+                      },
+                    ),
+                    const Divider(),
+                    
+                    // RAGGIO DI RICERCA
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text("${Translator.of('search_radius')}: ${_searchRadius.toInt()} $_selectedUnit"),
+                        ),
+                        Slider(
+                          value: _searchRadius,
+                          min: 1, max: 50,
+                          onChanged: (v) {
+                            setState(() => _searchRadius = v); // Aggiorna la mappa
+                            setDialogState(() {}); // Aggiorna lo slider nel popup
+                          },
+                        ),
+                      ],
+                    ),
+                    const Divider(),
+
+                    // NAVIGATORE
+                    ListTile(
+                      title: Text(Translator.of('navigator')),
+                      trailing: DropdownButton<String>(
+                        value: _preferredNav,
+                        onChanged: (v) {
+                          setState(() => _preferredNav = v!);
+                          setDialogState(() {});
+                        },
+                        items: const [
+                          DropdownMenuItem(value: 'Google Maps', child: Text('Google')),
+                          DropdownMenuItem(value: 'Apple Maps', child: Text('Apple')),
+                        ],
+                      ),
+                    ),
+
+                    // PULISCI CACHE
+                    TextButton.icon(
+                      icon: const Icon(Icons.delete_sweep, color: Colors.red),
+                      label: Text(Translator.of('clear_cache'), style: const TextStyle(color: Colors.red)),
+                      onPressed: () {
+                        setState(() => _markers = []);
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(Translator.of('cache_cleared'))),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("OK"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -484,10 +624,17 @@ class _PickUpMapState extends State<PickUpMap> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("PickUp - Find Sport Courts"),
+        title: Text(Translator.of('app_title')),
         centerTitle: true,
         backgroundColor: Colors.blueGrey[900],
         foregroundColor: Colors.white,
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            tooltip: Translator.of('open_menu'), // Traduzione del tooltip
+            onPressed: () => Scaffold.of(context).openDrawer(), // Apre il drawer
+          ),
+        ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(60), 
           child: Container(
@@ -501,7 +648,7 @@ class _PickUpMapState extends State<PickUpMap> {
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: FilterChip(
-                    label: Text(sport, style: TextStyle(color: isSelected ? Colors.white : Colors.white70)),
+                    label: Text(Translator.of(sport), style: TextStyle(color: isSelected ? Colors.white : Colors.white70)),
                     selected: isSelected,
                     selectedColor: Colors.blueAccent,
                     checkmarkColor: Colors.white,
@@ -534,6 +681,67 @@ class _PickUpMapState extends State<PickUpMap> {
           ),
         ),
       ),),
+      drawer: Drawer(
+        child: Column(
+          children: [
+            DrawerHeader(
+              decoration: BoxDecoration(color: Colors.blueGrey[900]),
+              child: const Center(
+                child: Text('PickUp', style: TextStyle(color: Colors.white, fontSize: 28)),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.language, color: Colors.blueAccent),
+              title: Text(Translator.of('language')),
+              trailing: DropdownButton<String>(
+                value: Translator.currentLanguage,
+                underline: const SizedBox(),
+                onChanged: (String? newValue) {
+                  if (newValue != null) {
+                    setState(() => Translator.currentLanguage = newValue);
+                    Navigator.pop(context);
+                  }
+                },
+                items: const [
+                  DropdownMenuItem(value: 'it', child: Text('Italiano 🇮🇹')),
+                  DropdownMenuItem(value: 'en', child: Text('English 🇺🇸')),
+                ],
+              ),
+            ),
+            
+            const Divider(),
+
+            ListTile(
+              leading: const Icon(Icons.settings, color: Colors.blueGrey),
+              title: Text(Translator.of('settings')),
+              onTap: () {
+                Navigator.pop(context); // Chiude il drawer
+                _showSettingsDialog();  // Apre il popup
+              },
+            ),            
+            
+            const Spacer(), // Spinge tutto quello che segue in fondo
+
+            const Divider(),
+            InkWell(
+              onTap: () => {_launchURL("https://consultits.it")},
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    Text(Translator.of('developed_by'), style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                    const SizedBox(height: 4),
+                    const Text(
+                      "CONSULTITS",
+                      style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2, color: Colors.blueGrey),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
       body: Stack(
         children: [
           FlutterMap(
@@ -541,6 +749,11 @@ class _PickUpMapState extends State<PickUpMap> {
             options: MapOptions(
               initialCenter: _currentMapCenter,
               initialZoom: 14.0,
+              onMapReady: () {
+                if (_currentMapCenter != milanDefault) {
+                  _mapController.move(_currentMapCenter, 14.5);
+                }
+              },
               onPositionChanged: (position, hasGesture) {
                 if (hasGesture) {
                   setState(() {
@@ -552,8 +765,11 @@ class _PickUpMapState extends State<PickUpMap> {
             ),
             children: [
               TileLayer(
+                key: ValueKey("${Translator.currentLanguage}_${widget.isDarkMode}"),
                 urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
                 userAgentPackageName: 'com.pickup.app',
+                evictErrorTileStrategy: EvictErrorTileStrategy.none,
+                tileDisplay: const TileDisplay.fadeIn()
               ),
               MarkerLayer(markers: displayedMarkers),
             ],
@@ -570,7 +786,7 @@ class _PickUpMapState extends State<PickUpMap> {
               child: Center(
                 child: FloatingActionButton.extended(
                   onPressed: () => _fetchMultiSportCourts(),
-                  label: const Text("Search in this area", style: TextStyle(color: Colors.white)),
+                  label: Text(Translator.of('search_here'), style: TextStyle(color: Colors.white)),
                   icon: const Icon(Icons.refresh, color: Colors.white),
                   backgroundColor: Colors.blueAccent,
                 ),
