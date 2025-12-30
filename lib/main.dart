@@ -7,6 +7,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'constants/translator.dart';
 
+final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
 void main() {
   runApp(const MaterialApp(
     debugShowCheckedModeBanner: false,
@@ -27,23 +29,35 @@ class _PickUpAppState extends State<PickUpApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      scaffoldMessengerKey: scaffoldMessengerKey,
+
       debugShowCheckedModeBanner: false,
       // Questa riga permette all'app di cambiare tema istantaneamente
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,
-        colorSchemeSeed: Colors.blueAccent,
+       colorScheme: ColorScheme.fromSeed(
+          seedColor: Color(0xFF2E7D32),
+          brightness: Brightness.light,
+          primary: Color(0xFF2E7D32),
+          surface: Colors.white,
+        ),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.blueAccent, 
-          foregroundColor: Colors.white, // Testo e icone bianche sulla toolbar blu
+          backgroundColor: Color(0xFF2E7D32), 
+          foregroundColor: Colors.white,
           elevation: 2,
         ),
       ),
       darkTheme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Color(0xFF81C784),
+          brightness: Brightness.dark,
+          surface: Color(0xFF1A1C19),
+        ),
         appBarTheme: AppBarTheme(
-          backgroundColor: Colors.blueGrey[900],
+          backgroundColor: Color(0xFF212121),
           foregroundColor: Colors.white,
           elevation: 0,
         ),
@@ -84,7 +98,8 @@ class _PickUpMapState extends State<PickUpMap> {
     'fitness', 'climbing', 'swimming', 'yoga', 'gymnastics', 'cycling', 'running', 'table_tennis', 'skiing', 
     'padel', 'gym', 'football', 'snowboarding', 'rugby_union', 'rugby', 'rugby_league', 'american_football',
     'baseball', 'softball', 'skateboard', 'skateboarding', 'golf', 'martial_arts', 'karate', 'judo', 'equestrian',
-    'horse_riding', 'hockey', 'ice_hockey', 'boules', 'bocce', 'volley'];
+    'horse_riding', 'hockey', 'ice_hockey', 'boules', 'bocce', 'volley', 'boxing', 'calisthenics','snowboard',
+    'roller_hockey' ];
   final Set<String> _selectedSports = {}; // Inizia vuoto = mostra tutto
 
   LatLng _currentMapCenter = milanDefault;
@@ -188,6 +203,9 @@ class _PickUpMapState extends State<PickUpMap> {
     Map<IconData, String> uniqueIconsMap = {};
     
     for (var sport in rawSports) {
+      if (!_availableSports.contains(sport)) // Filtra solo sport gestiti
+        continue;
+
       IconData icon = _getIconDataForSport(sport);
       // Se l'icona non è già presente nella mappa, la aggiungiamo
       if (!uniqueIconsMap.containsKey(icon)) {
@@ -299,6 +317,7 @@ class _PickUpMapState extends State<PickUpMap> {
       case 'skiing':
         return Icons.downhill_skiing;
       case 'snowboarding':
+      case 'snowboard':
         return Icons.snowboarding;
       case 'padel':
         return Icons.sports_tennis;
@@ -329,6 +348,12 @@ class _PickUpMapState extends State<PickUpMap> {
       case 'boules':
       case 'bocce':
         return Icons.circle;
+      case 'boxing':
+        return Icons.sports_mma;
+      case 'calisthenics':
+        return Icons.accessibility_new;
+      case 'roller_hockey':
+        return Icons.roller_skating;
       default:
         return Icons.sports; 
     }
@@ -372,6 +397,7 @@ class _PickUpMapState extends State<PickUpMap> {
       case 'skiing':
         return Colors.lightBlue[300]!;
       case 'snowboarding':
+      case 'snowboard':
         return Colors.indigo[400]!;
       case 'rugby':
       case 'rugby_union':
@@ -400,6 +426,12 @@ class _PickUpMapState extends State<PickUpMap> {
       case 'boules':
       case 'bocce':
         return Colors.blueGrey[400]!;
+      case 'boxing':
+        return Colors.orangeAccent;
+      case 'calisthenics':
+        return Color(0xFF388E3C);
+      case 'roller_hockey':
+        return Color(0xFF006064);
       default: 
         return Colors.grey[600]!;
     }
@@ -427,7 +459,12 @@ class _PickUpMapState extends State<PickUpMap> {
     );
 
     try {
-      final response = await http.get(url);
+      final response = await http.get(url).timeout( //TODO: Timeout capire come fare
+      const Duration(seconds: 60),
+        onTimeout: () {
+          throw Exception('Request timed out');
+        }
+      );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         List<Marker> newMarkers = [];
@@ -542,7 +579,9 @@ class _PickUpMapState extends State<PickUpMap> {
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
-                        children: sportCounts.entries.map((entry) {
+                        children: sportCounts.entries
+                          .where((entry) => _availableSports.contains(entry.key)) // Filtra solo sport gestiti
+                          .map((entry) {
                           return IntrinsicWidth(
                             child: Container(
                               constraints: BoxConstraints(
@@ -631,7 +670,7 @@ class _PickUpMapState extends State<PickUpMap> {
               // Bottone Navigazione (Fuori dallo scroll per essere sempre visibile)
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
                   minimumSize: const Size(double.infinity, 55),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
                 ),
@@ -738,7 +777,7 @@ class _PickUpMapState extends State<PickUpMap> {
               child: AlertDialog(
                 title: Row(
                   children: [
-                    const Icon(Icons.settings, color: Colors.blueAccent),
+                    Icon(Icons.settings, color: Theme.of(context).colorScheme.primary),
                     const SizedBox(width: 10),
                     Text(Translator.of('settings')),
                   ],
@@ -750,6 +789,8 @@ class _PickUpMapState extends State<PickUpMap> {
                       // DARK MODE
                       SwitchListTile(
                         title: Text(Translator.of('dark_mode')),
+                        activeThumbColor: Theme.of(context).colorScheme.primary,
+                        activeTrackColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
                         value: localDarkMode,
                         onChanged: (bool value) {
                           widget.onThemeChanged(value);
@@ -767,11 +808,17 @@ class _PickUpMapState extends State<PickUpMap> {
                         children: [
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Text("${Translator.of('search_radius')}: ${_searchRadius.toInt()} $_selectedUnit"),
+                            child: Text(
+                              "${Translator.of('search_radius')}: ${_searchRadius.toInt()} $_selectedUnit",
+                            ),
                           ),
                           Slider(
                             value: _searchRadius,
-                            min: 1, max: 50,
+                            min: 1,
+                            max: 50,
+                            activeColor: Theme.of(context).colorScheme.primary,
+                            thumbColor: Theme.of(context).colorScheme.primary,
+                            inactiveColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                             onChanged: (v) {
                               setState(() => _searchRadius = v); // Aggiorna la mappa
                               setDialogState(() {}); // Aggiorna lo slider nel popup
@@ -803,9 +850,18 @@ class _PickUpMapState extends State<PickUpMap> {
                         label: Text(Translator.of('clear_cache'), style: const TextStyle(color: Colors.red)),
                         onPressed: () {
                           setState(() => _markers = []);
+                          
                           Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(Translator.of('cache_cleared'))),
+
+                          scaffoldMessengerKey.currentState?.showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                Translator.of('cache_cleared'),
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                              backgroundColor: Theme.of(context).colorScheme.error,
+                              behavior: SnackBarBehavior.floating,
+                            ),
                           );
                         },
                       ),
@@ -815,7 +871,13 @@ class _PickUpMapState extends State<PickUpMap> {
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text("OK"),
+                    child: Text(
+                      "OK",
+                      style: TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    ),
                   ),
                 ],
               )
@@ -876,8 +938,8 @@ class _PickUpMapState extends State<PickUpMap> {
             height: 45,
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
-              color: Colors.blueGrey[900],
-              border: Border(top: BorderSide(color: Colors.white10, width: 0.5)),
+              color: Theme.of(context).colorScheme.surfaceContainer,
+              border: Border(top: BorderSide(color: Theme.of(context).dividerColor, width: 0.5)),
             ),
             child: Row(
               children: [
@@ -898,7 +960,7 @@ class _PickUpMapState extends State<PickUpMap> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: Colors.blueAccent,
+                            color: Theme.of(context).colorScheme.primary,
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Row(
@@ -940,14 +1002,14 @@ class _PickUpMapState extends State<PickUpMap> {
                                 _selectedSports.length == _availableSports.length 
                                     ? Icons.indeterminate_check_box 
                                     : Icons.select_all,
-                                color: Colors.blueAccent,
+                                color: Theme.of(context).colorScheme.primary,
                               ),
                               const SizedBox(width: 12),
                               Text(
                                 _selectedSports.length == _availableSports.length 
                                     ? Translator.of('deselect_all') 
                                     : Translator.of('select_all'),
-                                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent),
+                                style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
                               ),
                             ],
                           ),
@@ -981,7 +1043,7 @@ class _PickUpMapState extends State<PickUpMap> {
                               children: [
                                 Icon(
                                   isSelected ? Icons.check_box : Icons.check_box_outline_blank,
-                                  color: isSelected ? Colors.blueAccent : Colors.grey,
+                                  color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey,
                                   size: 22,
                                 ),
                                 const SizedBox(width: 12),
@@ -995,7 +1057,7 @@ class _PickUpMapState extends State<PickUpMap> {
                                   Translator.of(sport),
                                   style: TextStyle(
                                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                    color: isSelected ? Colors.blueAccent : null,
+                                    color: isSelected ? Theme.of(context).colorScheme.primary : null,
                                   ),
                                 ),
                               ],
@@ -1022,9 +1084,9 @@ class _PickUpMapState extends State<PickUpMap> {
                               margin: const EdgeInsets.only(right: 6),
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: _getIconColorForSport(repSport).withOpacity(0.2),
+                                color: _getIconColorForSport(repSport).withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: _getIconColorForSport(repSport).withOpacity(0.5))
+                                border: Border.all(color: _getIconColorForSport(repSport).withValues(alpha: 0.5))
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -1048,13 +1110,13 @@ class _PickUpMapState extends State<PickUpMap> {
         child: Column(
           children: [
             DrawerHeader(
-              decoration: BoxDecoration(color: Colors.blueGrey[900]),
+              decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary),
               child: const Center(
                 child: Text('PickUp', style: TextStyle(color: Colors.white, fontSize: 28)),
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.language, color: Colors.blueAccent),
+              leading: Icon(Icons.language, color: Theme.of(context).colorScheme.primary),
               title: Text(Translator.of('language')),
               trailing: DropdownButton<String>(
                 value: Translator.currentLanguage,
@@ -1075,7 +1137,7 @@ class _PickUpMapState extends State<PickUpMap> {
             const Divider(),
 
             ListTile(
-              leading: const Icon(Icons.settings, color: Colors.blueGrey),
+              leading: Icon(Icons.settings, color: Theme.of(context).colorScheme.secondary),
               title: Text(Translator.of('settings')),
               onTap: () {
                 Navigator.pop(context); // Chiude il drawer
@@ -1151,7 +1213,7 @@ class _PickUpMapState extends State<PickUpMap> {
                   onPressed: () => _fetchMultiSportCourts(),
                   label: Text(Translator.of('search_here'), style: TextStyle(color: Colors.white)),
                   icon: const Icon(Icons.refresh, color: Colors.white),
-                  backgroundColor: Colors.blueAccent,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
                 ),
               ),
             ),
@@ -1160,7 +1222,7 @@ class _PickUpMapState extends State<PickUpMap> {
       floatingActionButton: FloatingActionButton(
         onPressed: () => _initializeLocation(false), // Ri-esegue il check posizione e sposta la mappa
         backgroundColor: Colors.white,
-        child: const Icon(Icons.my_location, color: Colors.blueAccent),
+        child: Icon(Icons.my_location, color: Theme.of(context).colorScheme.primary),
       ),
     );
   }

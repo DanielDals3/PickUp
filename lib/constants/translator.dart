@@ -63,7 +63,11 @@ class Translator {
       'ice_hockey': 'Hockey su ghiaccio',
       'boules': 'Bocce',
       'bocce': 'Bocce',
-      'address_not_available': 'Indirizzo non disponibile'
+      'address_not_available': 'Indirizzo non disponibile',
+      'boxing': 'Boxe',
+      'calisthenics': 'Calisthenics',
+      'snowboard': 'Snowboard',
+      'roller_hockey': 'Hockey su rotelle',
     },
     'en': {
       'app_title': 'PickUp',
@@ -107,7 +111,7 @@ class Translator {
       'padel': 'Padel',
       'gym': 'Gym',
       'football': 'Football',
-      'snowboarding': 'Snowboarding',
+      'snowboarding': 'Snowboard',
       'rugby_union': 'Rugby',
       'rugby_league': 'Rugby',
       'rugby': 'Rugby',
@@ -126,7 +130,11 @@ class Translator {
       'ice_hockey': 'Ice Hockey',
       'boules': 'Boules',
       'bocce': 'Boules',
-      'address_not_available': 'Address not available'
+      'address_not_available': 'Address not available',
+      'boxing': 'Boxing',
+      'calisthenics': 'Calisthenics',
+      'snowboard': 'Snowboard',
+      'roller_hockey': 'Roller Hockey',
     }
   };
 
