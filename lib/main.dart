@@ -4,7 +4,6 @@ import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:geolocator/geolocator.dart';
-import 'dart:io' show Platform;
 import 'package:url_launcher/url_launcher.dart';
 import 'constants/translator.dart';
 
@@ -31,10 +30,27 @@ class _PickUpAppState extends State<PickUpApp> {
       debugShowCheckedModeBanner: false,
       // Questa riga permette all'app di cambiare tema istantaneamente
       theme: ThemeData(
-        brightness: _isDarkMode ? Brightness.dark : Brightness.light,
-        colorSchemeSeed: Colors.blueAccent,
         useMaterial3: true,
+        brightness: Brightness.light,
+        colorSchemeSeed: Colors.blueAccent,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.blueAccent, 
+          foregroundColor: Colors.white, // Testo e icone bianche sulla toolbar blu
+          elevation: 2,
+        ),
       ),
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.blueGrey[900],
+          foregroundColor: Colors.white,
+          elevation: 0,
+        ),
+      ),
+
+      themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
+
       // Passiamo lo stato e la funzione per cambiarlo alla mappa
       home: PickUpMap(
         isDarkMode: _isDarkMode,
@@ -64,9 +80,12 @@ class _PickUpMapState extends State<PickUpMap> {
   final MapController _mapController = MapController();
   List<Marker> _markers = [];
 
-  final List<String> _availableSports = ['basketball', 'soccer', 'tennis', 'volleyball', 'beachvolleyball'];
+  final List<String> _availableSports = ['basketball', 'soccer', 'tennis', 'volleyball', 'beachvolleyball',
+    'fitness', 'climbing', 'swimming', 'yoga', 'gymnastics', 'cycling', 'running', 'table_tennis', 'skiing', 
+    'padel', 'gym', 'football', 'snowboarding', 'rugby_union', 'rugby', 'rugby_league', 'american_football',
+    'baseball', 'softball', 'skateboard', 'skateboarding', 'golf', 'martial_arts', 'karate', 'judo', 'equestrian',
+    'horse_riding', 'hockey', 'ice_hockey', 'boules', 'bocce', 'volley'];
   final Set<String> _selectedSports = {}; // Inizia vuoto = mostra tutto
-  Set<String> _lastSearchedSports = {}; // Memorizza i filtri dell'ultima chiamata API
 
   LatLng _currentMapCenter = milanDefault;
   bool _showSearchButton = false;
@@ -80,21 +99,6 @@ class _PickUpMapState extends State<PickUpMap> {
   void initState() {
     super.initState();
     _initializeLocation(true);
-  }
-
-  List<Marker> get _displayedMarkers {  
-    if (_selectedSports.isEmpty) {
-      return _markers;
-    }
-
-    return _markers.where((marker) {
-    // Recuperiamo lo sport che abbiamo salvato nella 'key' del marker
-    // Lo facciamo castando la key a ValueKey<String>
-    final String? markerSport = (marker.key as ValueKey<String>?)?.value;
-    
-    // Teniamo il marker solo se il suo sport è tra quelli selezionati
-    return _selectedSports.contains(markerSport);
-  }).toList();
   }
 
   Future<void> _initializeLocation(bool isInitial) async {
@@ -172,11 +176,28 @@ class _PickUpMapState extends State<PickUpMap> {
 
   // Funzione per assegnare l'icona corretta in base allo sport
   Widget _getMarkerIcon(String? sportTag) {
-    IconData iconData;
-    Color iconColor;
 
-    List<String> sports = sportTag?.split(';') ?? ['unknown'];
+    // 1. Dividiamo la stringa e puliamo i testi
+    List<String> rawSports = (sportTag?.split(';') ?? ['unknown'])
+      .map((s) => s.trim().toLowerCase())
+      .where((s) => s.isNotEmpty)
+      .toList();
 
+    // 2. CREIAMO UNA LISTA DI SPORT UNICI BASATA SULL'ICONA
+    // Usiamo una mappa per tenere solo uno sport per ogni tipo di icona
+    Map<IconData, String> uniqueIconsMap = {};
+    
+    for (var sport in rawSports) {
+      IconData icon = _getIconDataForSport(sport);
+      // Se l'icona non è già presente nella mappa, la aggiungiamo
+      if (!uniqueIconsMap.containsKey(icon)) {
+        uniqueIconsMap[icon] = sport;
+      }
+    }
+
+    List<String> sports = uniqueIconsMap.values.toList();
+
+    // 2. Se è un campo Multisport (più di uno sport unico)
     if (sports.length > 1) {
       // Prendiamo i primi 4
       final displayedSports = sports.take(4).toList();
@@ -188,39 +209,36 @@ class _PickUpMapState extends State<PickUpMap> {
           border: Border.all(color: Colors.blueGrey, width: 2),
           boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
         ),
-        padding: const EdgeInsets.all(4), // Aumentato leggermente per dare aria
+        padding: const EdgeInsets.all(2),
         child: SizedBox(
           width: 32,
           height: 32,
-          child: Center( // Centra il blocco icone
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Prima riga
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildMiniIcon(displayedSports[0]),
+                  if (displayedSports.length >= 2) _buildMiniIcon(displayedSports[1]),
+                ],
+              ),
+              if (displayedSports.length > 2)
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    _buildMiniIcon(displayedSports[0]),
-                    if (displayedSports.length >= 2) _buildMiniIcon(displayedSports[1]),
+                    _buildMiniIcon(displayedSports[2]),
+                    if (displayedSports.length == 4) _buildMiniIcon(displayedSports[3]),
                   ],
                 ),
-                // Seconda riga (solo se ci sono 3 o 4 sport)
-                if (displayedSports.length > 2)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildMiniIcon(displayedSports[2]),
-                      if (displayedSports.length == 4) _buildMiniIcon(displayedSports[3]),
-                    ],
-                  ),
-              ],
+            ],
             ),
-          ),
         ),
       );
     }
 
-    String sport = sports.first;
+    // 3. Singolo Sport (o dopo la pulizia ne è rimasto solo uno)
+    String sport = sports.isNotEmpty ? sports.first : 'unknown';
 
     return Container(
       decoration: BoxDecoration(
@@ -233,12 +251,13 @@ class _PickUpMapState extends State<PickUpMap> {
     );
   }
 
+  // Funzione helper per le icone minuscole nel quadrato multisport
   Widget _buildMiniIcon(String sport) {
     return Padding(
       padding: const EdgeInsets.all(1.0),
       child: Icon(
         _getIconDataForSport(sport), 
-        size: 12, // Leggermente più grande del tuo 10 per visibilità
+        size: 13,
         color: _getIconColorForSport(sport)
       ),
     );
@@ -256,23 +275,133 @@ class _PickUpMapState extends State<PickUpMap> {
       case 'tennis':
         return Icons.sports_tennis;
       case 'volleyball':
+      case 'volley':
         return Icons.sports_volleyball;
       case 'beachvolleyball':
         return Icons.sports_volleyball;
+      case 'fitness':
+      case 'gym':
+        return Icons.fitness_center;
+      case 'climbing':
+        return Icons.terrain;
+      case 'swimming':
+        return Icons.pool;
+      case 'yoga':
+        return Icons.self_improvement;
+      case 'gymnastics':
+        return Icons.sports_gymnastics;
+      case 'cycling':
+        return Icons.directions_bike;
+      case 'running':
+        return Icons.directions_run;
+      case 'table_tennis':
+        return Icons.table_restaurant;
+      case 'skiing':
+        return Icons.downhill_skiing;
+      case 'snowboarding':
+        return Icons.snowboarding;
+      case 'padel':
+        return Icons.sports_tennis;
+      case 'rugby_union':
+      case 'rugby':
+      case 'rugby_league':
+        return Icons.sports_rugby;
+      case 'american_football':
+        return Icons.sports_football;
+      case 'baseball':
+      case 'softball':
+        return Icons.sports_baseball;
+      case 'skateboard':
+      case 'skateboarding':
+        return Icons.skateboarding;
+      case 'golf':
+        return Icons.sports_golf;
+      case 'martial_arts':
+      case 'karate':
+      case 'judo':
+        return Icons.sports_martial_arts;
+      case 'equestrian':
+      case 'horse_riding':
+        return Icons.cruelty_free;
+      case 'hockey':
+      case 'ice_hockey':
+        return Icons.sports_hockey;
+      case 'boules':
+      case 'bocce':
+        return Icons.circle;
       default:
-        return Icons.sports_handball; 
+        return Icons.sports; 
     }
   }
 
   Color _getIconColorForSport(String sport) {
     switch (sport.trim()) {
-      case 'unknown': return Colors.red;
-      case 'basketball': return Colors.orange;
-      case 'soccer': return Colors.green[800]!;
-      case 'tennis': return Colors.lime[700]!;
-      case 'volleyball': return Colors.blue[700]!;
-      case 'beachvolleyball': return Colors.amber[800]!;
-      default: return Colors.grey;
+      case 'unknown': 
+        return Colors.red;
+      case 'basketball': 
+        return Colors.orange;
+      case 'soccer':
+      case 'football':
+        return Colors.green[800]!;
+      case 'tennis': 
+        return Colors.lime[700]!;
+      case 'padel':
+        return Colors.teal[600]!;
+      case 'volleyball': 
+      case 'volley':
+        return Colors.blue[700]!;
+      case 'beachvolleyball': 
+        return Colors.amber[800]!;
+      case 'fitness':
+      case 'gym':
+        return Colors.blueGrey[700]!;
+      case 'climbing':
+        return Colors.brown[600]!;
+      case 'swimming':
+        return Colors.cyan[600]!;
+      case 'yoga':
+        return Colors.purple[400]!;
+      case 'gymnastics':
+        return Colors.pink[400]!;
+      case 'cycling':
+        return Colors.deepOrange[600]!;
+      case 'running':
+        return Colors.red[400]!;
+      case 'table_tennis':
+        return Colors.green[600]!;
+      case 'skiing':
+        return Colors.lightBlue[300]!;
+      case 'snowboarding':
+        return Colors.indigo[400]!;
+      case 'rugby':
+      case 'rugby_union':
+      case 'rugby_league':
+        return const Color(0xFF800020);
+      case 'american_football':
+        return Colors.brown[700]!;
+      case 'baseball':
+      case 'softball':
+        return Colors.red[900]!;
+      case 'skateboard':
+      case 'skateboarding':
+        return Colors.grey[800]!;
+      case 'golf':
+        return Colors.lightGreen[900]!;
+      case 'martial_arts':
+      case 'karate':
+      case 'judo':
+        return Colors.red[700]!;
+      case 'equestrian':
+      case 'horse_riding':
+        return Colors.brown[400]!;
+      case 'hockey':
+      case 'ice_hockey':
+        return Colors.blueAccent;
+      case 'boules':
+      case 'bocce':
+        return Colors.blueGrey[400]!;
+      default: 
+        return Colors.grey[600]!;
     }
   }
 
@@ -331,7 +460,6 @@ class _PickUpMapState extends State<PickUpMap> {
           setState(() {
             _markers = newMarkers;
             _showSearchButton = false;
-            _lastSearchedSports = Set.from(_selectedSports);
           });
         }
       }
@@ -343,92 +471,176 @@ class _PickUpMapState extends State<PickUpMap> {
 
   void _showCourtDetails(double lat, double lon, Map<String, dynamic> tags) {
     String name = tags['name'] ?? Translator.of('unknown');
-    String sport = (tags['sport'] ?? Translator.of('unknown')).toString().toUpperCase();
+
+    // LOGICA DI CONTEGGIO: 
+    // Prendiamo la stringa "soccer;tennis;tennis", la puliamo e contiamo le occorrenze
+    List<String> rawSports = (tags['sport'] ?? '').toString().split(';');
+    Map<String, int> sportCounts = {};
+
+    for (var s in rawSports) {
+      String cleaned = s.trim().toLowerCase();
+      if (cleaned.isNotEmpty) {
+        sportCounts[cleaned] = (sportCounts[cleaned] ?? 0) + 1;
+      }
+    }
+
+    // Se non ci sono sport taggati, mettiamo unknown
+    if (sportCounts.isEmpty) sportCounts['unknown'] = 1;
     
-    // 1. Recupero Indirizzo
+    // Indirizzo
     String address = _formatAddress(tags);
     
-    // 2. Recupero Link (controlla più tag possibili dove OSM salva i link)
+    // Link e Telefono
     String? website = tags['website'] ?? tags['contact:website'] ?? tags['facebook'] ?? tags['url'];
     String? phone = tags['phone'] ?? tags['contact:phone'];
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
-      builder: (context) => Padding(
-        padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(child: Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 20), decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10)))),
-            
-            Text(name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-            Text(sport, style: TextStyle(fontSize: 14, color: Colors.blueAccent[700], fontWeight: FontWeight.bold)),
-            const Divider(height: 30),
-
-            // Riga Indirizzo
-            _buildDetailRow(Icons.location_on, Translator.of('address'), address),
-            
-            // Riga Superficie (già presente)
-            _buildDetailRow(Icons.layers, Translator.of('surface'), tags['surface'] ?? Translator.of('not_specified')),
-
-            // 3. Riga Sito Web (mostrata solo se esiste)
-            if (website != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: InkWell(
-                  onTap: () {
-                    _launchURL(website);
-                  },
-                  child: Row(
+      backgroundColor: Colors.transparent, // Permette di vedere il raggio del bordo
+      builder: (context) => Container(
+        // Definiamo un'altezza massima dell'85% dello schermo per sicurezza
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
+        ),
+        decoration: BoxDecoration(
+          color: Theme.of(context).canvasColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+        ),
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 24, right: 24, top: 12, bottom: 32 + MediaQuery.of(context).viewInsets.bottom, // Gestisce tastiera
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min, // Occupa solo lo spazio necessario
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Handle grigia superiore
+              Center(
+                child: Container(
+                  width: 40, 
+                  height: 4, 
+                  margin: const EdgeInsets.only(bottom: 20), 
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300], 
+                    borderRadius: BorderRadius.circular(10)
+                  )
+                )
+              ),
+              
+              // Rendiamo il contenuto interno scorrevole
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.language, size: 20, color: Colors.blueAccent),
-                      const SizedBox(width: 12),
-                      Text("${Translator.of('website')}: ", style: TextStyle(fontWeight: FontWeight.bold)),
-                      Expanded(child: Text(website, style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline), overflow: TextOverflow.ellipsis)),
+                      Text(name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                      const Divider(height: 12),
+
+                      // SEZIONE SPORT: Griglia di Badge
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: sportCounts.entries.map((entry) {
+                          return IntrinsicWidth(
+                            child: Container(
+                              constraints: BoxConstraints(
+                                maxWidth: MediaQuery.of(context).size.width * 0.42,
+                              ),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: _getIconColorForSport(entry.key).withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: _getIconColorForSport(entry.key).withValues(alpha: 0.3)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min, // Impedisce alla riga di espandersi all'infinito
+                                children: [
+                                  Icon(_getIconDataForSport(entry.key), size: 16, color: _getIconColorForSport(entry.key)),
+                                  const SizedBox(width: 8),
+                                  // Aggiungiamo Flexible per evitare che testi lunghi causino overflow a destra
+                                  Flexible( 
+                                    child: Text(
+                                      "${Translator.of(entry.key)}: ${entry.value}",
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: _getIconColorForSport(entry.key).withValues(alpha: 0.9),
+                                      ),
+                                      overflow: TextOverflow.ellipsis, // Se il testo è troppo lungo, mette i puntini
+                                      maxLines: 1,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+
+                      const Divider(height: 40),
+
+                      // Dettagli (Indirizzo, Superficie, ecc.)
+                      _buildDetailRow(Icons.location_on, Translator.of('address'), address),
+                      _buildDetailRow(Icons.layers, Translator.of('surface'), tags['surface'] ?? Translator.of('not_specified')),
+
+                      // Sito Web
+                      if (website != null)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: InkWell(
+                            onTap: () => _launchURL(website),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.language, size: 20, color: Colors.blueAccent),
+                                const SizedBox(width: 12),
+                                Text("${Translator.of('website')}: ", style: const TextStyle(fontWeight: FontWeight.bold)),
+                                Expanded(child: Text(website, style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline), overflow: TextOverflow.ellipsis)),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                      // Telefono
+                      if (phone != null)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: InkWell(
+                            onTap: () {
+                              String cleanPhone = phone.replaceAll(RegExp(r'[^0-9+]'), '');
+                              _launchURL("tel:$cleanPhone");
+                            },
+                            child: Row(
+                              children: [
+                                const Icon(Icons.phone, size: 20, color: Colors.green),
+                                const SizedBox(width: 12),
+                                Text("${Translator.of('phone')}: ", style: const TextStyle(fontWeight: FontWeight.bold)),
+                                Expanded(child: Text(phone, style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline), overflow: TextOverflow.ellipsis)),
+                              ],
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
               ),
 
-            // 4. Riga Telefono (mostrata solo se esiste)
-            if (phone != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: InkWell(
-                  onTap: () {
-                    String cleanPhone = phone.replaceAll(RegExp(r'[^0-9+]'), '');
-                    _launchURL("tel:$cleanPhone");
-                  },
-                  child: Row(
-                    children: [
-                      const Icon(Icons.phone, size: 20, color: Colors.green),
-                      const SizedBox(width: 12),
-                      Text("${Translator.of('phone')}: ", style: TextStyle(fontWeight: FontWeight.bold)),
-                      Expanded(child: Text(phone, style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline), overflow: TextOverflow.ellipsis)),
-                    ],
-                  ),
+              const SizedBox(height: 20),
+              
+              // Bottone Navigazione (Fuori dallo scroll per essere sempre visibile)
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  minimumSize: const Size(double.infinity, 55),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
                 ),
-              ),
-
-            const SizedBox(height: 30),
-            
-            // Bottone Navigazione (Google Maps)
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
-                minimumSize: const Size(double.infinity, 55),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
-              ),
-              onPressed: () {
-                _openMap(lat, lon);
-              },
-              icon: const Icon(Icons.directions, color: Colors.white),
-              label: Text(Translator.of('take_me_here'), style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            )
-          ],
+                onPressed: () => _openMap(lat, lon),
+                icon: const Icon(Icons.directions, color: Colors.white),
+                label: Text(Translator.of('take_me_here'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              )
+            ],
+          ),
         ),
       ),
     );
@@ -443,9 +655,12 @@ class _PickUpMapState extends State<PickUpMap> {
           Icon(icon, size: 22, color: Colors.blueGrey[600]), // Icona a sinistra
           const SizedBox(width: 12),
           Expanded(
-            child: RichText(
-              text: TextSpan(
-                style: const TextStyle(fontSize: 15, color: Colors.black87),
+            child: Text.rich(
+              TextSpan(
+                style: TextStyle(
+                  fontSize: 15, 
+                  color: Theme.of(context).textTheme.bodyMedium?.color
+                ),
                 children: [
                   TextSpan(
                     text: "$label: ", 
@@ -454,6 +669,7 @@ class _PickUpMapState extends State<PickUpMap> {
                   TextSpan(text: value), // Valore (es. la via o il tipo di superficie)
                 ],
               ),
+              softWrap: true,
             ),
           ),
         ],
@@ -506,6 +722,8 @@ class _PickUpMapState extends State<PickUpMap> {
   }
 
   void _showSettingsDialog() {
+    bool localDarkMode = widget.isDarkMode;
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -513,86 +731,94 @@ class _PickUpMapState extends State<PickUpMap> {
         // di aggiornarsi graficamente mentre il popup è aperto
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Row(
-                children: [
-                  const Icon(Icons.settings, color: Colors.blueAccent),
-                  const SizedBox(width: 10),
-                  Text(Translator.of('settings')),
-                ],
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+            final dialogTheme = localDarkMode ? ThemeData.dark() : ThemeData.light();
+
+            return Theme(
+              data: dialogTheme, 
+              child: AlertDialog(
+                title: Row(
                   children: [
-                    // DARK MODE
-                    SwitchListTile(
-                      title: Text(Translator.of('dark_mode')),
-                      value: widget.isDarkMode,
-                      onChanged: (bool value) {
-                        widget.onThemeChanged(value);
-                        setDialogState(() {}); // Aggiorna il popup
-                      },
-                    ),
-                    const Divider(),
-                    
-                    // RAGGIO DI RICERCA
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Text("${Translator.of('search_radius')}: ${_searchRadius.toInt()} $_selectedUnit"),
-                        ),
-                        Slider(
-                          value: _searchRadius,
-                          min: 1, max: 50,
-                          onChanged: (v) {
-                            setState(() => _searchRadius = v); // Aggiorna la mappa
-                            setDialogState(() {}); // Aggiorna lo slider nel popup
-                          },
-                        ),
-                      ],
-                    ),
-                    const Divider(),
-
-                    // NAVIGATORE
-                    ListTile(
-                      title: Text(Translator.of('navigator')),
-                      trailing: DropdownButton<String>(
-                        value: _preferredNav,
-                        onChanged: (v) {
-                          setState(() => _preferredNav = v!);
-                          setDialogState(() {});
-                        },
-                        items: const [
-                          DropdownMenuItem(value: 'Google Maps', child: Text('Google')),
-                          DropdownMenuItem(value: 'Apple Maps', child: Text('Apple')),
-                        ],
-                      ),
-                    ),
-
-                    // PULISCI CACHE
-                    TextButton.icon(
-                      icon: const Icon(Icons.delete_sweep, color: Colors.red),
-                      label: Text(Translator.of('clear_cache'), style: const TextStyle(color: Colors.red)),
-                      onPressed: () {
-                        setState(() => _markers = []);
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(Translator.of('cache_cleared'))),
-                        );
-                      },
-                    ),
+                    const Icon(Icons.settings, color: Colors.blueAccent),
+                    const SizedBox(width: 10),
+                    Text(Translator.of('settings')),
                   ],
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("OK"),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // DARK MODE
+                      SwitchListTile(
+                        title: Text(Translator.of('dark_mode')),
+                        value: localDarkMode,
+                        onChanged: (bool value) {
+                          widget.onThemeChanged(value);
+
+                          setDialogState(() {
+                            localDarkMode = value;
+                          });
+                        },
+                      ),
+                      const Divider(),
+                      
+                      // RAGGIO DI RICERCA
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text("${Translator.of('search_radius')}: ${_searchRadius.toInt()} $_selectedUnit"),
+                          ),
+                          Slider(
+                            value: _searchRadius,
+                            min: 1, max: 50,
+                            onChanged: (v) {
+                              setState(() => _searchRadius = v); // Aggiorna la mappa
+                              setDialogState(() {}); // Aggiorna lo slider nel popup
+                            },
+                          ),
+                        ],
+                      ),
+                      const Divider(),
+
+                      // NAVIGATORE
+                      ListTile(
+                        title: Text(Translator.of('navigator')),
+                        trailing: DropdownButton<String>(
+                          value: _preferredNav,
+                          onChanged: (v) {
+                            setState(() => _preferredNav = v!);
+                            setDialogState(() {});
+                          },
+                          items: const [
+                            DropdownMenuItem(value: 'Google Maps', child: Text('Google')),
+                            DropdownMenuItem(value: 'Apple Maps', child: Text('Apple')),
+                          ],
+                        ),
+                      ),
+
+                      // PULISCI CACHE
+                      TextButton.icon(
+                        icon: const Icon(Icons.delete_sweep, color: Colors.red),
+                        label: Text(Translator.of('clear_cache'), style: const TextStyle(color: Colors.red)),
+                        onPressed: () {
+                          setState(() => _markers = []);
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(Translator.of('cache_cleared'))),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ],
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text("OK"),
+                  ),
+                ],
+              )
             );
           },
         );
@@ -602,31 +828,40 @@ class _PickUpMapState extends State<PickUpMap> {
 
   @override
   Widget build(BuildContext context) {
+    final Set<String> seenLabels = {};
+    final List<String> uniqueSports = _availableSports.where((sport) {
+      final label = Translator.of(sport);
+      if (seenLabels.contains(label)) return false;
+      seenLabels.add(label);
+      return true;
+    }).toList();
+
+    uniqueSports.sort((a, b) => Translator.of(a).compareTo(Translator.of(b)));
+
     // Se l'utente cambia filtri senza ricaricare, nascondiamo i marker non pertinenti
     final List<Marker> displayedMarkers = _markers.where((marker) {
-    // Se nessun filtro è selezionato, mostra tutti i marker presenti in memoria
-    if (_selectedSports.isEmpty) return true;
+      // Se nessun filtro è selezionato, mostra tutti i marker presenti in memoria
+      if (_selectedSports.isEmpty) return true;
 
-    // Recuperiamo lo sport dal tag Key del marker
-    if (marker.key is ValueKey<String?>) {
-      final String? sportMarker = (marker.key as ValueKey<String?>).value; 
+      // Recuperiamo lo sport dal tag Key del marker
+      if (marker.key is ValueKey<String?>) {
+        final String? sportMarker = (marker.key as ValueKey<String?>).value; 
 
-      if (sportMarker == null) return false;
+        if (sportMarker == null) return false;
 
-      final String sportsOfMarker = sportMarker.split('|').last.toLowerCase();
-      
-      return _selectedSports.any((filter) => 
-        sportsOfMarker.contains(filter.toLowerCase())
-      );
-    }
-    return false;
-  }).toList();
+        final String sportsOfMarker = sportMarker.split('|').last.toLowerCase();
+        
+        return _selectedSports.any((filter) => 
+          sportsOfMarker.contains(filter.toLowerCase())
+        );
+      }
+      return false;
+    }).toList();
 
     return Scaffold(
       appBar: AppBar(
         title: Text(Translator.of('app_title')),
         centerTitle: true,
-        backgroundColor: Colors.blueGrey[900],
         foregroundColor: Colors.white,
         leading: Builder(
           builder: (context) => IconButton(
@@ -636,51 +871,179 @@ class _PickUpMapState extends State<PickUpMap> {
           ),
         ),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60), 
+          preferredSize: const Size.fromHeight(45),
           child: Container(
-            height: 60,
-            color: Colors.blueGrey[900],
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              children: _availableSports.map((sport) {
-                final isSelected = _selectedSports.contains(sport);
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: FilterChip(
-                    label: Text(Translator.of(sport), style: TextStyle(color: isSelected ? Colors.white : Colors.white70)),
-                    selected: isSelected,
-                    selectedColor: Colors.blueAccent,
-                    checkmarkColor: Colors.white,
-                    backgroundColor: Colors.blueGrey[700],
-                    onSelected: (bool selected) {
-                      setState(() {
-                        if (selected) {
-                          _selectedSports.add(sport);
-                        } else {
-                          _selectedSports.remove(sport);
-                        }
-
-                        bool filtersChanged = !(_lastSearchedSports.length == _selectedSports.length && 
-                            _lastSearchedSports.containsAll(_selectedSports));
-
-                        // Se i filtri sono diversi da quelli dell'ultima ricerca, mostra il tasto.
-                        // Se è tornato alla configurazione originale, nascondilo.
-                        if (filtersChanged) {
-                          _showSearchButton = true;
-                        } else {
-                          // Opzionale: controlla anche la distanza GPS prima di nascondere
-                          _showSearchButton = false; 
-                        }
-                      });
+            height: 45,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.blueGrey[900],
+              border: Border(top: BorderSide(color: Colors.white10, width: 0.5)),
+            ),
+            child: Row(
+              children: [
+                  MenuAnchor(
+                    style: MenuStyle(
+                      backgroundColor: WidgetStateProperty.all(Theme.of(context).cardColor),
+                      elevation: WidgetStateProperty.all(8),
+                    ),
+                    builder: (context, controller, child) {
+                      return GestureDetector(
+                        onTap: () {
+                          if (controller.isOpen) {
+                            controller.close();
+                          } else {
+                            controller.open();
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.blueAccent,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.filter_list, color: Colors.white, size: 18),
+                              const SizedBox(width: 8),
+                              Text(
+                                Translator.of('sports'),
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                              ),
+                              const Icon(Icons.arrow_drop_down, color: Colors.white),
+                            ],
+                          ),
+                        ),
+                      );
                     },
+                    menuChildren: [
+                      // --- PULSANTE SELEZIONA/DESELEZIONA TUTTO ---
+                      MenuItemButton(
+                        closeOnActivate: false,
+                        onPressed: () {
+                          setState(() {
+                            if (_selectedSports.length == _availableSports.length) {
+                              _selectedSports.clear(); // Deseleziona tutto
+                            } else {
+                              _selectedSports.clear();
+                              _selectedSports.addAll(_availableSports); // Seleziona tutto
+                            }
+                            _showSearchButton = true;
+                          });
+                        },
+                        child: Container(
+                          width: 200,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Row(
+                            children: [
+                              Icon(
+                                _selectedSports.length == _availableSports.length 
+                                    ? Icons.indeterminate_check_box 
+                                    : Icons.select_all,
+                                color: Colors.blueAccent,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                _selectedSports.length == _availableSports.length 
+                                    ? Translator.of('deselect_all') 
+                                    : Translator.of('select_all'),
+                                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const Divider(height: 1), // Linea di separazione tra il comando rapido e la lista
+
+                      // --- LISTA DEGLI SPORT ---
+                      ...uniqueSports.map((sport) {
+                        final label = Translator.of(sport);
+                        final isSelected = _selectedSports.any((s) => Translator.of(s) == label);
+
+                        return MenuItemButton(
+                          closeOnActivate: false,
+                          onPressed: () {
+                            setState(() {
+                              final relatedSports = _availableSports.where((s) => Translator.of(s) == label).toList();  
+
+                              if (isSelected) {
+                                _selectedSports.removeWhere((s) => relatedSports.contains(s));
+                              } else {
+                                _selectedSports.addAll(relatedSports);
+                              }
+                              _showSearchButton = true;
+                            });
+                          },
+                          child: Container(
+                            width: 200,
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  isSelected ? Icons.check_box : Icons.check_box_outline_blank,
+                                  color: isSelected ? Colors.blueAccent : Colors.grey,
+                                  size: 22,
+                                ),
+                                const SizedBox(width: 12),
+                                Icon(
+                                  _getIconDataForSport(sport), 
+                                  color: _getIconColorForSport(sport), 
+                                  size: 20
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  Translator.of(sport),
+                                  style: TextStyle(
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                    color: isSelected ? Colors.blueAccent : null,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
                   ),
-                );
-              }).toList(
+                
+                const VerticalDivider(color: Colors.white24, indent: 10, endIndent: 10),
+
+                // CONTATORE VELOCE (Mostra quanti sport hai selezionato)
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: _selectedSports.isEmpty 
+                        ? [Text(Translator.of('all_sports'), style: const TextStyle(color: Colors.white54, fontSize: 13))]
+                        : _selectedSports.map((s) => Translator.of(s)).toSet().toList().map((label) {
+                            // Troviamo uno sport rappresentativo per l'icona
+                            final repSport = _availableSports.firstWhere((s) => Translator.of(s) == label);
+                            return Container(
+                              margin: const EdgeInsets.only(right: 6),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: _getIconColorForSport(repSport).withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: _getIconColorForSport(repSport).withOpacity(0.5))
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(_getIconDataForSport(repSport), size: 12, color: _getIconColorForSport(repSport)),
+                                  const SizedBox(width: 4),
+                                  Text(label, style: const TextStyle(color: Colors.white, fontSize: 11)),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                    ),
+                  ),
+                ),               
+              ],
             ),
           ),
         ),
-      ),),
+      ),
       drawer: Drawer(
         child: Column(
           children: [
