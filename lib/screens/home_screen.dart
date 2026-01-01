@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:pickup/models/sport_court.dart';
 import 'package:pickup/services/location_service.dart';
-import 'package:pickup/utils/app_utils.dart';
 import 'package:pickup/utils/sport_utils.dart';
 import 'package:pickup/widgets/court_details_sheet.dart';
 import 'package:pickup/widgets/main_drawer.dart';
@@ -15,13 +15,17 @@ import '../screens/settings_dialog.dart';
 import 'dart:convert';
 
 class HomeScreen extends StatefulWidget {
-  final bool isDarkMode;
-  final Function(bool) onThemeChanged;
+  final ThemeMode currentThemeMode;
+  final String currentNav;
+  final Function(ThemeMode) onThemeChanged;
+  final Function(String) onNavChanged;
 
   const HomeScreen({
-    super.key, 
-    required this.isDarkMode, 
-    required this.onThemeChanged
+    super.key,
+    required this.currentThemeMode,
+    required this.currentNav,
+    required this.onThemeChanged,
+    required this.onNavChanged,
   });
 
   @override
@@ -31,13 +35,10 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   // --- STATO DELL'APP ---
   final MapController _mapController = MapController();
-  List<Marker> _markers = [];
+  List<SportCourt> _courts = [];
   bool _isLoading = false;
   bool _showSearchButton = false;
   
-  double _searchRadius = 5.0;
-  String _selectedUnit = "km";
-  String _preferredNav = "Google Maps";
   LatLng _currentMapCenter = const LatLng(45.4642, 9.1900); // Milano default
 
   final List<String> _availableSports = ['basketball', 'soccer', 'tennis', 'volleyball', 'beachvolleyball',
@@ -73,17 +74,27 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Markers filtrati in tempo reale
   List<Marker> get _displayedMarkers {
-    if (_selectedSports.isEmpty) return _markers;
-    return _markers.where((marker) {
-      if (marker.key is ValueKey<String?>) {
-        final String? sportMarker = (marker.key as ValueKey<String?>).value;
-        if (sportMarker == null) return false;
-        final String sportsOfMarker = sportMarker.split('|').last.toLowerCase();
-        return _selectedSports.any((filter) => 
-          sportsOfMarker.contains(filter.toLowerCase())
-        );
-      }
-      return false;
+    // 1. Filtriamo i dati
+    final filteredCourts = _courts.where((court) {
+    if (_selectedSports.isEmpty) return true;
+      // Controlla se almeno uno degli sport del campo è tra quelli selezionati
+      return court.sports.any((sport) => _selectedSports.contains(sport));
+    }).toList();
+
+    // 2. Trasformiamo i dati filtrati in Widget
+    return filteredCourts.map((court) {
+      return Marker(
+        key: ValueKey("marker_${court.id}"),
+        point: court.position,
+        width: 40,
+        height: 40,
+        child: GestureDetector(
+          onTap: () => _showCourtDetails(
+            court
+          ),
+          child: _getMarkerIcon(court.sports.join(';')), 
+        ),
+      );
     }).toList();
   }
 
@@ -123,10 +134,8 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_mapController != null) {
-        _mapController.move(target, 14.5);
-      }
-    });
+      _mapController.move(target, 14.5);
+        });
     
     // Delay per i visibleBounds
     Future.delayed(const Duration(milliseconds: 600), () {
@@ -149,7 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _isLoading = true;
       _showSearchButton = false;
-      _markers = [];
+      _courts = [];
     });
 
     String sportsQuery = _selectedSports.isEmpty 
@@ -164,38 +173,17 @@ class _HomeScreenState extends State<HomeScreen> {
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        List<Marker> newMarkers = [];
+        // List<Marker> newMarkers = [];
 
-        for (var element in data['elements']) {
-          double? lat = element['lat']?.toDouble() ?? element['center']?['lat']?.toDouble();
-          double? lon = element['lon']?.toDouble() ?? element['center']?['lon']?.toDouble();
-          
-          if (lat != null && lon != null) {
-            final String id = element['id'].toString();
-            final Map<String, dynamic> tags = element['tags'] ?? {};
-            final String sportType = tags['sport'] ?? "unknown";
+        if (!mounted) return;
 
-            newMarkers.add(
-              Marker(
-                key: ValueKey("${sportType}_$id"),
-                point: LatLng(lat, lon),
-                width: 40,
-                height: 40,
-                child: GestureDetector(
-                  onTap: () => _showCourtDetails(lat, lon, tags),
-                  child: _getMarkerIcon(sportType),
-                ),
-              ),
-            );
-          }
-        }
-
-        if (mounted) {
-          setState(() {
-            _markers = newMarkers;
-            _showSearchButton = false;
-          });
-        }
+        setState(() {
+          _courts = (data['elements'] as List)
+              .map((e) => SportCourt.fromOSM(e))
+              .toList();
+              
+          _showSearchButton = false;
+        }); 
       }
 
       setState(() {
@@ -213,50 +201,22 @@ class _HomeScreenState extends State<HomeScreen> {
   void _openSettings() {
     SettingsDialog.show(
       context,
-      currentRadius: _searchRadius,
-      isDarkMode: widget.isDarkMode,
-      currentNav: _preferredNav,
-      unit: _selectedUnit,
-      onRadiusChanged: (v) => setState(() => _searchRadius = v),
-      onThemeChanged: (v) => widget.onThemeChanged(v),
-      onNavChanged: (v) => setState(() => _preferredNav = v),
-      onClearCache: () => setState(() => _markers = []),
+      currentThemeMode: widget.currentThemeMode,
+      currentNav: widget.currentNav,
+      onThemeChanged: widget.onThemeChanged,
+      onNavChanged: widget.onNavChanged,
+      onClearCache: () => setState(() => _courts = []),
     );
   }
 
-  void _showCourtDetails(double lat, double lon, Map<String, dynamic> tags) {
-    String courtName = tags['name'] ?? Translator.of('unknown');
-
-    // LOGICA DI CONTEGGIO: 
-    // Prendiamo la stringa "soccer;tennis;tennis", la puliamo e contiamo le occorrenze
-    List<String> rawSports = (tags['sport'] ?? '').toString().split(';');
-    Map<String, int> sportCounts = {};
-
-    for (var s in rawSports) {
-      String cleaned = s.trim().toLowerCase();
-      if (cleaned.isNotEmpty) {
-        sportCounts[cleaned] = (sportCounts[cleaned] ?? 0) + 1;
-      }
-    }
-
-    // Se non ci sono sport taggati, mettiamo unknown
-    if (sportCounts.isEmpty) sportCounts['unknown'] = 1;
-    
-    // Indirizzo
-    String address = AppUtils.formatAddress(tags);
-    
+  void _showCourtDetails(SportCourt court) {    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent, // Importante per i bordi arrotondati del Container interno
       builder: (context) => CourtDetailsSheet(
-        name: courtName,
-        sportCounts: sportCounts,
-        address: address,
-        tags: tags,
-        lat: lat,
-        lon: lon,
-        preferredNav: _preferredNav, // Variabile di stato della HomeScreen
+        court: court,
+        preferredNav: widget.currentNav,
         availableSports: _availableSports, // Variabile di stato della HomeScreen
       ),
     );
@@ -275,8 +235,10 @@ class _HomeScreenState extends State<HomeScreen> {
     Map<IconData, String> uniqueIconsMap = {};
     
     for (var sport in rawSports) {
-      if (!_availableSports.contains(sport)) // Filtra solo sport gestiti
+      if (!_availableSports.contains(sport)) {
+        // Filtra solo sport gestiti
         continue;
+      }
 
       IconData icon = SportUtils.getIconData(sport);
       // Se l'icona non è già presente nella mappa, la aggiungiamo
@@ -331,7 +293,7 @@ class _HomeScreenState extends State<HomeScreen> {
     String sport = sports.isNotEmpty ? sports.first : 'unknown';
 
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
         shape: BoxShape.circle,
         boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
@@ -546,7 +508,7 @@ class _HomeScreenState extends State<HomeScreen> {
             mapController: _mapController,
             markers: _displayedMarkers,
             initialCenter: _currentMapCenter,
-            isDarkMode: widget.isDarkMode,
+            isDarkMode: Theme.of(context).brightness == Brightness.dark,
             onPositionChanged: (camera, hasGesture) {
               if (hasGesture) {
                 setState(() {

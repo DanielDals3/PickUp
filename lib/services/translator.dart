@@ -68,6 +68,10 @@ class Translator {
       'calisthenics': 'Calisthenics',
       'snowboard': 'Snowboard',
       'roller_hockey': 'Hockey su rotelle',
+      'theme_system': 'Automatico',
+      'theme_light': 'Chiaro',
+      'theme_dark': 'Scuro',
+      'theme' : 'Tema',
     },
     'en': {
       'app_title': 'PickUp',
@@ -135,6 +139,10 @@ class Translator {
       'calisthenics': 'Calisthenics',
       'snowboard': 'Snowboard',
       'roller_hockey': 'Roller Hockey',
+      'theme_system': 'System',
+      'theme_light': 'Light',
+      'theme_dark': 'Dark',
+      'theme' : 'Theme',
     }
   };
 

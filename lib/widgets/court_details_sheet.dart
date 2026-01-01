@@ -1,26 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:pickup/models/sport_court.dart';
 import '../utils/app_utils.dart';
 import '../utils/sport_utils.dart';
 import '../services/translator.dart';
 
 class CourtDetailsSheet extends StatelessWidget {
-  final String name;
-  final Map<String, int> sportCounts;
-  final String address;
-  final Map<String, dynamic> tags;
-  final double lat;
-  final double lon;
+  final SportCourt court;
   final String preferredNav;
   final List<String> availableSports;
 
   const CourtDetailsSheet({
     super.key,
-    required this.name,
-    required this.sportCounts,
-    required this.address,
-    required this.tags,
-    required this.lat,
-    required this.lon,
+    required this.court,
     required this.preferredNav,
     required this.availableSports,
   });
@@ -28,8 +19,10 @@ class CourtDetailsSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Estrazione dati opzionali
+    final tags = court.rawTags;
     String? website = tags['website'] ?? tags['contact:website'] ?? tags['facebook'] ?? tags['url'];
     String? phone = tags['phone'] ?? tags['contact:phone'];
+    String address = AppUtils.formatAddress(tags);
 
     return Container(
       constraints: BoxConstraints(
@@ -57,7 +50,7 @@ class CourtDetailsSheet extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      name, 
+                      court.name == "unknown" ? Translator.of("unknown") : court.name, 
                       style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)
                     ),
                     const Divider(height: 20),
@@ -110,34 +103,38 @@ class CourtDetailsSheet extends StatelessWidget {
     ),
   );
 
-  Widget _buildSportGrid(BuildContext context) => Wrap(
-    spacing: 8, 
-    runSpacing: 8,
-    children: sportCounts.entries.where((e) => availableSports.contains(e.key)).map((e) {
-      final color = SportUtils.getIconColor(e.key);
-      return IntrinsicWidth(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withValues(alpha: 0.3)),
+  Widget _buildSportGrid(BuildContext context) {
+    final counts = court.sportCounts;
+
+    return Wrap(
+      spacing: 8, 
+      runSpacing: 8,
+      children: counts.entries.where((e) => availableSports.contains(e.key)).map((e) {
+        final color = SportUtils.getIconColor(e.key);
+        return IntrinsicWidth(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: color.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(SportUtils.getIconData(e.key), size: 16, color: color),
+                const SizedBox(width: 8),
+                Text(
+                  "${Translator.of(e.key)}: ${e.value}",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color),
+                ),
+              ],
+            ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(SportUtils.getIconData(e.key), size: 16, color: color),
-              const SizedBox(width: 8),
-              Text(
-                "${Translator.of(e.key)}: ${e.value}",
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color),
-              ),
-            ],
-          ),
-        ),
-      );
-    }).toList(),
-  );
+        );
+      }).toList(),
+    );
+  }
 
   // La tua funzione preferita con Text.rich migliorata
   Widget _buildDetailRow(IconData icon, String label, String value, BuildContext context) {
@@ -214,7 +211,7 @@ class CourtDetailsSheet extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       elevation: 0,
     ),
-    onPressed: () => AppUtils.openMap(lat, lon, preferredNav),
+    onPressed: () => AppUtils.openMap(court.position.latitude, court.position.longitude, preferredNav),
     icon: const Icon(Icons.directions, color: Colors.white),
     label: Text(
       Translator.of('take_me_here'), 

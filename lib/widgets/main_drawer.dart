@@ -50,7 +50,8 @@ class MainDrawer extends StatelessWidget {
             ),
           ),
 
-          const Divider(),
+          const Spacer(),
+          const Divider(height: 1),
 
           // IMPOSTAZIONI
           ListTile(
@@ -62,9 +63,7 @@ class MainDrawer extends StatelessWidget {
             },
           ),
 
-          const Spacer(), // Spinge il resto in fondo
-
-          const Divider(),
+          const Divider(height: 1),
 
           // FOOTER (Sito Web / Credits)
           InkWell(

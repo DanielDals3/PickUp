@@ -149,9 +149,9 @@ class SportUtils {
       case 'boxing':
         return Colors.orangeAccent;
       case 'calisthenics':
-        return Color(0xFF388E3C);
+        return const Color(0xFF388E3C);
       case 'roller_hockey':
-        return Color(0xFF006064);
+        return const Color(0xFF006064);
       default: 
         return Colors.grey[600]!;
     }

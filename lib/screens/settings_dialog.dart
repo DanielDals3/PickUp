@@ -1,35 +1,32 @@
 import 'package:flutter/material.dart';
 import '../services/translator.dart';
-
-// Importa la chiave globale se l'hai messa in main.dart per la SnackBar
 import '../main.dart'; 
 
 class SettingsDialog {
   static void show(
     BuildContext context, {
-    required double currentRadius,
-    required bool isDarkMode,
+    required ThemeMode currentThemeMode,
     required String currentNav,
-    required String unit,
-    required Function(double) onRadiusChanged,
-    required Function(bool) onThemeChanged,
+    required Function(ThemeMode) onThemeChanged,
     required Function(String) onNavChanged,
     required VoidCallback onClearCache,
   }) {
+
+    ThemeMode tempThemeMode = currentThemeMode;
+    String tempNav = currentNav;
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        // Variabili locali per gestire lo stato interno del dialogo
-        double tempRadius = currentRadius;
-        bool localDarkMode = isDarkMode;
-        String tempNav = currentNav;
 
         return StatefulBuilder(
           builder: (context, setDialogState) {
+            final Color primaryColor = Theme.of(context).colorScheme.primary;
+
             return AlertDialog(
               title: Row(
                 children: [
-                  Icon(Icons.settings, color: Theme.of(context).colorScheme.primary),
+                  Icon(Icons.settings, color: primaryColor),
                   const SizedBox(width: 10),
                   Text(Translator.of('settings')),
                 ],
@@ -39,48 +36,44 @@ class SettingsDialog {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // DARK MODE
-                    SwitchListTile(
-                      title: Text(Translator.of('dark_mode')),
-                      activeThumbColor: Theme.of(context).colorScheme.primary,
-                      value: localDarkMode,
-                      onChanged: (bool value) {
-                        setDialogState(() => localDarkMode = value);
-                        onThemeChanged(value); // Notifica la Home
-                      },
-                    ),
-                    const Divider(),
-                    
-                    // RAGGIO DI RICERCA
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Text(
-                            "${Translator.of('search_radius')}: ${tempRadius.toInt()} $unit",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
+                    ListTile(
+                      leading: Icon(Icons.palette_outlined, color: primaryColor),
+                      title: Text(Translator.of('theme')),
+                      contentPadding: EdgeInsets.zero,
+                      trailing: DropdownButton<ThemeMode>(
+                        value: tempThemeMode,
+                        underline: const SizedBox(),
+                        onChanged: (ThemeMode? newValue) {
+                          if (newValue != null) {
+                            setDialogState(() {
+                              tempThemeMode = newValue;
+                            });
+                            onThemeChanged(newValue);
+                          }
+                        },
+                        items: [
+                          DropdownMenuItem(
+                            value: ThemeMode.system, 
+                            child: Text(Translator.of('theme_system')), // "Automatico"
                           ),
-                        ),
-                        Slider(
-                          value: tempRadius,
-                          min: 1,
-                          max: 50,
-                          activeColor: Theme.of(context).colorScheme.primary,
-                          onChanged: (v) {
-                            setDialogState(() => tempRadius = v);
-                            onRadiusChanged(v); // Notifica la Home
-                          },
-                        ),
-                      ],
+                          DropdownMenuItem(
+                            value: ThemeMode.light, 
+                            child: Text(Translator.of('theme_light')), // "Chiaro"
+                          ),
+                          DropdownMenuItem(
+                            value: ThemeMode.dark, 
+                            child: Text(Translator.of('theme_dark')), // "Scuro"
+                          ),
+                        ],
+                      ),
                     ),
                     const Divider(),
 
-                    // NAVIGATORE
+                    // NAVIGATORE PREFERITO
                     ListTile(
+                      leading: Icon(Icons.map_outlined, color: primaryColor),
                       title: Text(Translator.of('navigator')),
+                      contentPadding: EdgeInsets.zero,
                       trailing: DropdownButton<String>(
                         value: tempNav,
                         underline: const SizedBox(),
@@ -96,23 +89,30 @@ class SettingsDialog {
                         ],
                       ),
                     ),
+                    const Divider(),
 
                     // PULISCI CACHE
-                    TextButton.icon(
-                      icon: const Icon(Icons.delete_sweep, color: Colors.red),
-                      label: Text(Translator.of('clear_cache'), style: const TextStyle(color: Colors.red)),
-                      onPressed: () {
-                        onClearCache(); // Chiama la funzione passata dalla Home
-                        Navigator.pop(context); // Chiude il dialogo
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: TextButton.icon(
+                        icon: const Icon(Icons.delete_sweep, color: Colors.red),
+                        label: Text(
+                          Translator.of('clear_cache'), 
+                          style: const TextStyle(color: Colors.red)
+                        ),
+                        onPressed: () {
+                          onClearCache(); 
+                          Navigator.pop(context); 
 
-                        scaffoldMessengerKey.currentState?.showSnackBar(
-                          SnackBar(
-                            content: Text(Translator.of('cache_cleared')),
-                            backgroundColor: Theme.of(context).colorScheme.error,
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      },
+                          scaffoldMessengerKey.currentState?.showSnackBar(
+                            SnackBar(
+                              content: Text(Translator.of('cache_cleared')),
+                              backgroundColor: Theme.of(context).colorScheme.error,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ],
                 ),
