@@ -15,7 +15,8 @@ class MainDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      child: Column( // Usiamo Column per poter mettere il footer in fondo
+      child: Column(
+        // Usiamo Column per poter mettere il footer in fondo
         children: [
           // HEADER
           DrawerHeader(
@@ -25,14 +26,21 @@ class MainDrawer extends StatelessWidget {
             child: const Center(
               child: Text(
                 'PickUp',
-                style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
 
           // CAMBIO LINGUA
           ListTile(
-            leading: Icon(Icons.language, color: Theme.of(context).colorScheme.primary),
+            leading: Icon(
+              Icons.language,
+              color: Theme.of(context).colorScheme.primary,
+            ),
             title: Text(Translator.of('language')),
             trailing: DropdownButton<String>(
               value: Translator.currentLanguage,
@@ -51,15 +59,53 @@ class MainDrawer extends StatelessWidget {
           ),
 
           const Spacer(),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.primary, // Usa il verde definito nel tema
+                foregroundColor: Colors.white, // Testo e icona bianchi
+                minimumSize: const Size(
+                  double.infinity,
+                  50,
+                ), // Lungo quanto la sidebar
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 2,
+              ),
+              onPressed: () {
+                // Per ora simuliamo solo il click
+                print("Login premuto!");
+                // Chiudi il drawer dopo il click
+                Navigator.pop(context);
+              },
+              icon: const Icon(Icons.login),
+              label: const Text(
+                "LOGIN",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+          ),
+
           const Divider(height: 1),
 
           // IMPOSTAZIONI
           ListTile(
-            leading: Icon(Icons.settings, color: Theme.of(context).colorScheme.secondary),
+            leading: Icon(
+              Icons.settings,
+              color: Theme.of(context).colorScheme.secondary,
+            ),
             title: Text(Translator.of('settings')),
             onTap: () {
               Navigator.pop(context); // Chiude il drawer
-              onOpenSettings();       // Chiama la funzione della Home
+              onOpenSettings(); // Chiama la funzione della Home
             },
           ),
 
@@ -72,11 +118,18 @@ class MainDrawer extends StatelessWidget {
               padding: EdgeInsets.all(16.0),
               child: Column(
                 children: [
-                  Text("Developed by", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  Text(
+                    "Developed by",
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
                   SizedBox(height: 4),
                   Text(
                     "CONSULTITS",
-                    style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2, color: Colors.blueGrey),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                      color: Colors.blueGrey,
+                    ),
                   ),
                 ],
               ),
