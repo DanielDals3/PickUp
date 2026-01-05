@@ -7,13 +7,13 @@ import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'constants/translator.dart';
 
-final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
 
 void main() {
-  runApp(const MaterialApp(
-    debugShowCheckedModeBanner: false,
-    home: PickUpApp(),
-  ));
+  runApp(
+    const MaterialApp(debugShowCheckedModeBanner: false, home: PickUpApp()),
+  );
 }
 
 class PickUpApp extends StatefulWidget {
@@ -36,14 +36,14 @@ class _PickUpAppState extends State<PickUpApp> {
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,
-       colorScheme: ColorScheme.fromSeed(
+        colorScheme: ColorScheme.fromSeed(
           seedColor: Color(0xFF2E7D32),
           brightness: Brightness.light,
           primary: Color(0xFF2E7D32),
           surface: Colors.white,
         ),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF2E7D32), 
+          backgroundColor: Color(0xFF2E7D32),
           foregroundColor: Colors.white,
           elevation: 2,
         ),
@@ -82,7 +82,11 @@ class PickUpMap extends StatefulWidget {
   final bool isDarkMode;
   final Function(bool) onThemeChanged;
 
-  const PickUpMap({super.key, required this.isDarkMode, required this.onThemeChanged});
+  const PickUpMap({
+    super.key,
+    required this.isDarkMode,
+    required this.onThemeChanged,
+  });
 
   @override
   State<PickUpMap> createState() => _PickUpMapState();
@@ -90,16 +94,53 @@ class PickUpMap extends StatefulWidget {
 
 class _PickUpMapState extends State<PickUpMap> {
   static const LatLng milanDefault = LatLng(45.4642, 9.1900);
-  
+
   final MapController _mapController = MapController();
   List<Marker> _markers = [];
 
-  final List<String> _availableSports = ['basketball', 'soccer', 'tennis', 'volleyball', 'beachvolleyball',
-    'fitness', 'climbing', 'swimming', 'yoga', 'gymnastics', 'cycling', 'running', 'table_tennis', 'skiing', 
-    'padel', 'gym', 'football', 'snowboarding', 'rugby_union', 'rugby', 'rugby_league', 'american_football',
-    'baseball', 'softball', 'skateboard', 'skateboarding', 'golf', 'martial_arts', 'karate', 'judo', 'equestrian',
-    'horse_riding', 'hockey', 'ice_hockey', 'boules', 'bocce', 'volley', 'boxing', 'calisthenics','snowboard',
-    'roller_hockey' ];
+  final List<String> _availableSports = [
+    'basketball',
+    'soccer',
+    'tennis',
+    'volleyball',
+    'beachvolleyball',
+    'fitness',
+    'climbing',
+    'swimming',
+    'yoga',
+    'gymnastics',
+    'cycling',
+    'running',
+    'table_tennis',
+    'skiing',
+    'padel',
+    'gym',
+    'football',
+    'snowboarding',
+    'rugby_union',
+    'rugby',
+    'rugby_league',
+    'american_football',
+    'baseball',
+    'softball',
+    'skateboard',
+    'skateboarding',
+    'golf',
+    'martial_arts',
+    'karate',
+    'judo',
+    'equestrian',
+    'horse_riding',
+    'hockey',
+    'ice_hockey',
+    'boules',
+    'bocce',
+    'volley',
+    'boxing',
+    'calisthenics',
+    'snowboard',
+    'roller_hockey',
+  ];
   final Set<String> _selectedSports = {}; // Inizia vuoto = mostra tutto
 
   LatLng _currentMapCenter = milanDefault;
@@ -148,7 +189,7 @@ class _PickUpMapState extends State<PickUpMap> {
     // 5. Se siamo qui, il permesso è concesso (granted o whileInUse)
     try {
       const LocationSettings locationSettings = LocationSettings(
-        accuracy: LocationAccuracy.high
+        accuracy: LocationAccuracy.high,
       );
 
       Position position = await Geolocator.getCurrentPosition(
@@ -156,9 +197,8 @@ class _PickUpMapState extends State<PickUpMap> {
       );
 
       LatLng userLocation = LatLng(position.latitude, position.longitude);
-      
-      _moveToLocation(userLocation, isInitial);
 
+      _moveToLocation(userLocation, isInitial);
     } catch (e) {
       _loadDefaultLocation();
     }
@@ -171,37 +211,33 @@ class _PickUpMapState extends State<PickUpMap> {
   void _moveToLocation(LatLng target, [bool isInitial = false]) {
     if (!mounted) return;
 
-      setState(() => _currentMapCenter = target);
-      _mapController.move(target, 14.5);
-      
-      // Ritardo per permettere al controller di aggiornare i visibleBounds
-      Future.delayed(const Duration(milliseconds: 400), () {
-        
-        if (isInitial) {
-          _fetchMultiSportCourts();
-        }
-        else {
-          setState(() {
-            _showSearchButton = true;
-          });
-        }
-      });
-    
+    setState(() => _currentMapCenter = target);
+    _mapController.move(target, 14.5);
+
+    // Ritardo per permettere al controller di aggiornare i visibleBounds
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (isInitial) {
+        _fetchMultiSportCourts();
+      } else {
+        setState(() {
+          _showSearchButton = true;
+        });
+      }
+    });
   }
 
   // Funzione per assegnare l'icona corretta in base allo sport
   Widget _getMarkerIcon(String? sportTag) {
-
     // 1. Dividiamo la stringa e puliamo i testi
     List<String> rawSports = (sportTag?.split(';') ?? ['unknown'])
-      .map((s) => s.trim().toLowerCase())
-      .where((s) => s.isNotEmpty)
-      .toList();
+        .map((s) => s.trim().toLowerCase())
+        .where((s) => s.isNotEmpty)
+        .toList();
 
     // 2. CREIAMO UNA LISTA DI SPORT UNICI BASATA SULL'ICONA
     // Usiamo una mappa per tenere solo uno sport per ogni tipo di icona
     Map<IconData, String> uniqueIconsMap = {};
-    
+
     for (var sport in rawSports) {
       if (!_availableSports.contains(sport)) // Filtra solo sport gestiti
         continue;
@@ -219,7 +255,7 @@ class _PickUpMapState extends State<PickUpMap> {
     if (sports.length > 1) {
       // Prendiamo i primi 4
       final displayedSports = sports.take(4).toList();
-      
+
       return Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -238,7 +274,8 @@ class _PickUpMapState extends State<PickUpMap> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _buildMiniIcon(displayedSports[0]),
-                  if (displayedSports.length >= 2) _buildMiniIcon(displayedSports[1]),
+                  if (displayedSports.length >= 2)
+                    _buildMiniIcon(displayedSports[1]),
                 ],
               ),
               if (displayedSports.length > 2)
@@ -246,11 +283,12 @@ class _PickUpMapState extends State<PickUpMap> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _buildMiniIcon(displayedSports[2]),
-                    if (displayedSports.length == 4) _buildMiniIcon(displayedSports[3]),
+                    if (displayedSports.length == 4)
+                      _buildMiniIcon(displayedSports[3]),
                   ],
                 ),
             ],
-            ),
+          ),
         ),
       );
     }
@@ -265,7 +303,11 @@ class _PickUpMapState extends State<PickUpMap> {
         boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
       ),
       padding: const EdgeInsets.all(4),
-      child: Icon(_getIconDataForSport(sport), color: _getIconColorForSport(sport), size: 28),
+      child: Icon(
+        _getIconDataForSport(sport),
+        color: _getIconColorForSport(sport),
+        size: 28,
+      ),
     );
   }
 
@@ -274,9 +316,9 @@ class _PickUpMapState extends State<PickUpMap> {
     return Padding(
       padding: const EdgeInsets.all(1.0),
       child: Icon(
-        _getIconDataForSport(sport), 
+        _getIconDataForSport(sport),
         size: 13,
-        color: _getIconColorForSport(sport)
+        color: _getIconColorForSport(sport),
       ),
     );
   }
@@ -355,27 +397,27 @@ class _PickUpMapState extends State<PickUpMap> {
       case 'roller_hockey':
         return Icons.roller_skating;
       default:
-        return Icons.sports; 
+        return Icons.sports;
     }
   }
 
   Color _getIconColorForSport(String sport) {
     switch (sport.trim()) {
-      case 'unknown': 
+      case 'unknown':
         return Colors.red;
-      case 'basketball': 
+      case 'basketball':
         return Colors.orange;
       case 'soccer':
       case 'football':
         return Colors.green[800]!;
-      case 'tennis': 
+      case 'tennis':
         return Colors.lime[700]!;
       case 'padel':
         return Colors.teal[600]!;
-      case 'volleyball': 
+      case 'volleyball':
       case 'volley':
         return Colors.blue[700]!;
-      case 'beachvolleyball': 
+      case 'beachvolleyball':
         return Colors.amber[800]!;
       case 'fitness':
       case 'gym':
@@ -432,7 +474,7 @@ class _PickUpMapState extends State<PickUpMap> {
         return Color(0xFF388E3C);
       case 'roller_hockey':
         return Color(0xFF006064);
-      default: 
+      default:
         return Colors.grey[600]!;
     }
   }
@@ -441,7 +483,8 @@ class _PickUpMapState extends State<PickUpMap> {
     if (!mounted) return;
 
     final bounds = _mapController.camera.visibleBounds;
-    if (bounds.south == bounds.north) return; // Protezione se i bounds non sono pronti
+    if (bounds.south == bounds.north)
+      return; // Protezione se i bounds non sono pronti
 
     setState(() {
       _isLoading = true;
@@ -449,30 +492,37 @@ class _PickUpMapState extends State<PickUpMap> {
       _markers = [];
     });
 
-    String sportsQuery = _selectedSports.isEmpty 
-        ? _availableSports.join('|') 
+    String sportsQuery = _selectedSports.isEmpty
+        ? _availableSports.join('|')
         : _selectedSports.join('|');
 
     // Query che cerca diversi tipi di sport contemporaneamente
     final url = Uri.parse(
-      'https://overpass-api.de/api/interpreter?data=[out:json];nw["sport"~"$sportsQuery"](${bounds.south},${bounds.west},${bounds.north},${bounds.east});out center;'
+      'https://overpass-api.de/api/interpreter?data=[out:json];nw["sport"~"$sportsQuery"](${bounds.south},${bounds.west},${bounds.north},${bounds.east});out center;',
     );
 
     try {
-      final response = await http.get(url).timeout( //TODO: Timeout capire come fare
-      const Duration(seconds: 60),
-        onTimeout: () {
-          throw Exception('Request timed out');
-        }
-      );
+      final response = await http
+          .get(url)
+          .timeout(
+            //TODO: Timeout capire come fare
+            const Duration(seconds: 60),
+            onTimeout: () {
+              throw Exception('Request timed out');
+            },
+          );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         List<Marker> newMarkers = [];
 
         for (var element in data['elements']) {
-          double? lat = element['lat']?.toDouble() ?? element['center']?['lat']?.toDouble();
-          double? lon = element['lon']?.toDouble() ?? element['center']?['lon']?.toDouble();
-          
+          double? lat =
+              element['lat']?.toDouble() ??
+              element['center']?['lat']?.toDouble();
+          double? lon =
+              element['lon']?.toDouble() ??
+              element['center']?['lon']?.toDouble();
+
           if (lat != null && lon != null) {
             final String id = element['id'].toString();
             final Map<String, dynamic> tags = element['tags'] ?? {};
@@ -509,7 +559,7 @@ class _PickUpMapState extends State<PickUpMap> {
   void _showCourtDetails(double lat, double lon, Map<String, dynamic> tags) {
     String name = tags['name'] ?? Translator.of('unknown');
 
-    // LOGICA DI CONTEGGIO: 
+    // LOGICA DI CONTEGGIO:
     // Prendiamo la stringa "soccer;tennis;tennis", la puliamo e contiamo le occorrenze
     List<String> rawSports = (tags['sport'] ?? '').toString().split(';');
     Map<String, int> sportCounts = {};
@@ -523,18 +573,23 @@ class _PickUpMapState extends State<PickUpMap> {
 
     // Se non ci sono sport taggati, mettiamo unknown
     if (sportCounts.isEmpty) sportCounts['unknown'] = 1;
-    
+
     // Indirizzo
     String address = _formatAddress(tags);
-    
+
     // Link e Telefono
-    String? website = tags['website'] ?? tags['contact:website'] ?? tags['facebook'] ?? tags['url'];
+    String? website =
+        tags['website'] ??
+        tags['contact:website'] ??
+        tags['facebook'] ??
+        tags['url'];
     String? phone = tags['phone'] ?? tags['contact:phone'];
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent, // Permette di vedere il raggio del bordo
+      backgroundColor:
+          Colors.transparent, // Permette di vedere il raggio del bordo
       builder: (context) => Container(
         // Definiamo un'altezza massima dell'85% dello schermo per sicurezza
         constraints: BoxConstraints(
@@ -546,7 +601,12 @@ class _PickUpMapState extends State<PickUpMap> {
         ),
         child: Padding(
           padding: EdgeInsets.only(
-            left: 24, right: 24, top: 12, bottom: 32 + MediaQuery.of(context).viewInsets.bottom, // Gestisce tastiera
+            left: 24,
+            right: 24,
+            top: 12,
+            bottom:
+                32 +
+                MediaQuery.of(context).viewInsets.bottom, // Gestisce tastiera
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min, // Occupa solo lo spazio necessario
@@ -555,16 +615,16 @@ class _PickUpMapState extends State<PickUpMap> {
               // Handle grigia superiore
               Center(
                 child: Container(
-                  width: 40, 
-                  height: 4, 
-                  margin: const EdgeInsets.only(bottom: 20), 
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
                   decoration: BoxDecoration(
-                    color: Colors.grey[300], 
-                    borderRadius: BorderRadius.circular(10)
-                  )
-                )
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
               ),
-              
+
               // Rendiamo il contenuto interno scorrevole
               Flexible(
                 child: SingleChildScrollView(
@@ -572,7 +632,13 @@ class _PickUpMapState extends State<PickUpMap> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                      Text(
+                        name,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const Divider(height: 12),
 
                       // SEZIONE SPORT: Griglia di Badge
@@ -580,49 +646,79 @@ class _PickUpMapState extends State<PickUpMap> {
                         spacing: 8,
                         runSpacing: 8,
                         children: sportCounts.entries
-                          .where((entry) => _availableSports.contains(entry.key)) // Filtra solo sport gestiti
-                          .map((entry) {
-                          return IntrinsicWidth(
-                            child: Container(
-                              constraints: BoxConstraints(
-                                maxWidth: MediaQuery.of(context).size.width * 0.42,
-                              ),
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: _getIconColorForSport(entry.key).withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: _getIconColorForSport(entry.key).withValues(alpha: 0.3)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min, // Impedisce alla riga di espandersi all'infinito
-                                children: [
-                                  Icon(_getIconDataForSport(entry.key), size: 16, color: _getIconColorForSport(entry.key)),
-                                  const SizedBox(width: 8),
-                                  // Aggiungiamo Flexible per evitare che testi lunghi causino overflow a destra
-                                  Flexible( 
-                                    child: Text(
-                                      "${Translator.of(entry.key)}: ${entry.value}",
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.bold,
-                                        color: _getIconColorForSport(entry.key).withValues(alpha: 0.9),
-                                      ),
-                                      overflow: TextOverflow.ellipsis, // Se il testo è troppo lungo, mette i puntini
-                                      maxLines: 1,
+                            .where(
+                              (entry) => _availableSports.contains(entry.key),
+                            ) // Filtra solo sport gestiti
+                            .map((entry) {
+                              return IntrinsicWidth(
+                                child: Container(
+                                  constraints: BoxConstraints(
+                                    maxWidth:
+                                        MediaQuery.of(context).size.width *
+                                        0.42,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _getIconColorForSport(
+                                      entry.key,
+                                    ).withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: _getIconColorForSport(
+                                        entry.key,
+                                      ).withValues(alpha: 0.3),
                                     ),
                                   ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize
+                                        .min, // Impedisce alla riga di espandersi all'infinito
+                                    children: [
+                                      Icon(
+                                        _getIconDataForSport(entry.key),
+                                        size: 16,
+                                        color: _getIconColorForSport(entry.key),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      // Aggiungiamo Flexible per evitare che testi lunghi causino overflow a destra
+                                      Flexible(
+                                        child: Text(
+                                          "${Translator.of(entry.key)}: ${entry.value}",
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: _getIconColorForSport(
+                                              entry.key,
+                                            ).withValues(alpha: 0.9),
+                                          ),
+                                          overflow: TextOverflow
+                                              .ellipsis, // Se il testo è troppo lungo, mette i puntini
+                                          maxLines: 1,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            })
+                            .toList(),
                       ),
 
                       const Divider(height: 40),
 
                       // Dettagli (Indirizzo, Superficie, ecc.)
-                      _buildDetailRow(Icons.location_on, Translator.of('address'), address),
-                      _buildDetailRow(Icons.layers, Translator.of('surface'), tags['surface'] ?? Translator.of('not_specified')),
+                      _buildDetailRow(
+                        Icons.location_on,
+                        Translator.of('address'),
+                        address,
+                      ),
+                      _buildDetailRow(
+                        Icons.layers,
+                        Translator.of('surface'),
+                        tags['surface'] ?? Translator.of('not_specified'),
+                      ),
 
                       // Sito Web
                       if (website != null)
@@ -632,10 +728,28 @@ class _PickUpMapState extends State<PickUpMap> {
                             onTap: () => _launchURL(website),
                             child: Row(
                               children: [
-                                const Icon(Icons.language, size: 20, color: Colors.blueAccent),
+                                const Icon(
+                                  Icons.language,
+                                  size: 20,
+                                  color: Colors.blueAccent,
+                                ),
                                 const SizedBox(width: 12),
-                                Text("${Translator.of('website')}: ", style: const TextStyle(fontWeight: FontWeight.bold)),
-                                Expanded(child: Text(website, style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline), overflow: TextOverflow.ellipsis)),
+                                Text(
+                                  "${Translator.of('website')}: ",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    website,
+                                    style: const TextStyle(
+                                      color: Colors.blue,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -647,15 +761,36 @@ class _PickUpMapState extends State<PickUpMap> {
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           child: InkWell(
                             onTap: () {
-                              String cleanPhone = phone.replaceAll(RegExp(r'[^0-9+]'), '');
+                              String cleanPhone = phone.replaceAll(
+                                RegExp(r'[^0-9+]'),
+                                '',
+                              );
                               _launchURL("tel:$cleanPhone");
                             },
                             child: Row(
                               children: [
-                                const Icon(Icons.phone, size: 20, color: Colors.green),
+                                const Icon(
+                                  Icons.phone,
+                                  size: 20,
+                                  color: Colors.green,
+                                ),
                                 const SizedBox(width: 12),
-                                Text("${Translator.of('phone')}: ", style: const TextStyle(fontWeight: FontWeight.bold)),
-                                Expanded(child: Text(phone, style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline), overflow: TextOverflow.ellipsis)),
+                                Text(
+                                  "${Translator.of('phone')}: ",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    phone,
+                                    style: const TextStyle(
+                                      color: Colors.blue,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -666,18 +801,26 @@ class _PickUpMapState extends State<PickUpMap> {
               ),
 
               const SizedBox(height: 20),
-              
+
               // Bottone Navigazione (Fuori dallo scroll per essere sempre visibile)
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Theme.of(context).colorScheme.primary,
                   minimumSize: const Size(double.infinity, 55),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
                 ),
                 onPressed: () => _openMap(lat, lon),
                 icon: const Icon(Icons.directions, color: Colors.white),
-                label: Text(Translator.of('take_me_here'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              )
+                label: Text(
+                  Translator.of('take_me_here'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -689,7 +832,8 @@ class _PickUpMapState extends State<PickUpMap> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start, // Allinea l'icona in alto se il testo va a capo
+        crossAxisAlignment: CrossAxisAlignment
+            .start, // Allinea l'icona in alto se il testo va a capo
         children: [
           Icon(icon, size: 22, color: Colors.blueGrey[600]), // Icona a sinistra
           const SizedBox(width: 12),
@@ -697,15 +841,19 @@ class _PickUpMapState extends State<PickUpMap> {
             child: Text.rich(
               TextSpan(
                 style: TextStyle(
-                  fontSize: 15, 
-                  color: Theme.of(context).textTheme.bodyMedium?.color
+                  fontSize: 15,
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
                 ),
                 children: [
                   TextSpan(
-                    text: "$label: ", 
-                    style: const TextStyle(fontWeight: FontWeight.bold) // Etichetta in grassetto
+                    text: "$label: ",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ), // Etichetta in grassetto
                   ),
-                  TextSpan(text: value), // Valore (es. la via o il tipo di superficie)
+                  TextSpan(
+                    text: value,
+                  ), // Valore (es. la via o il tipo di superficie)
                 ],
               ),
               softWrap: true,
@@ -720,21 +868,21 @@ class _PickUpMapState extends State<PickUpMap> {
     final street = tags['addr:street'] ?? '';
     final housenumber = tags['addr:housenumber'] ?? '';
     final city = tags['addr:city'] ?? '';
-    
-    if (street.isEmpty && city.isEmpty) return Translator.of('address_not_available');
-    
+
+    if (street.isEmpty && city.isEmpty)
+      return Translator.of('address_not_available');
+
     // Unisce i pezzi: "Via Roma, 10, Milano"
     return [
       street,
       if (housenumber.isNotEmpty) housenumber,
-      if (city.isNotEmpty) city
+      if (city.isNotEmpty) city,
     ].join(', ');
   }
 
   Future<void> _launchURL(String urlString) async {
     final Uri url = Uri.parse(urlString);
-    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-    }
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {}
   }
 
   Future<void> _openMap(double lat, double lon) async {
@@ -745,7 +893,9 @@ class _PickUpMapState extends State<PickUpMap> {
       url = Uri.parse("https://maps.apple.com/?q=$lat,$lon");
     } else {
       // Default: Google Maps (funziona tramite browser su iOS o app su Android)
-      url = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lon");
+      url = Uri.parse(
+        "https://www.google.com/maps/search/?api=1&query=$lat,$lon",
+      );
     }
 
     if (await canLaunchUrl(url)) {
@@ -766,18 +916,23 @@ class _PickUpMapState extends State<PickUpMap> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        // Usiamo StatefulBuilder per permettere ai widget (switch, slider) 
+        // Usiamo StatefulBuilder per permettere ai widget (switch, slider)
         // di aggiornarsi graficamente mentre il popup è aperto
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            final dialogTheme = localDarkMode ? ThemeData.dark() : ThemeData.light();
+            final dialogTheme = localDarkMode
+                ? ThemeData.dark()
+                : ThemeData.light();
 
             return Theme(
-              data: dialogTheme, 
+              data: dialogTheme,
               child: AlertDialog(
                 title: Row(
                   children: [
-                    Icon(Icons.settings, color: Theme.of(context).colorScheme.primary),
+                    Icon(
+                      Icons.settings,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                     const SizedBox(width: 10),
                     Text(Translator.of('settings')),
                   ],
@@ -790,7 +945,9 @@ class _PickUpMapState extends State<PickUpMap> {
                       SwitchListTile(
                         title: Text(Translator.of('dark_mode')),
                         activeThumbColor: Theme.of(context).colorScheme.primary,
-                        activeTrackColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
+                        activeTrackColor: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.4),
                         value: localDarkMode,
                         onChanged: (bool value) {
                           widget.onThemeChanged(value);
@@ -801,7 +958,7 @@ class _PickUpMapState extends State<PickUpMap> {
                         },
                       ),
                       const Divider(),
-                      
+
                       // RAGGIO DI RICERCA
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -818,10 +975,16 @@ class _PickUpMapState extends State<PickUpMap> {
                             max: 50,
                             activeColor: Theme.of(context).colorScheme.primary,
                             thumbColor: Theme.of(context).colorScheme.primary,
-                            inactiveColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                            inactiveColor: Theme.of(
+                              context,
+                            ).colorScheme.primary.withValues(alpha: 0.2),
                             onChanged: (v) {
-                              setState(() => _searchRadius = v); // Aggiorna la mappa
-                              setDialogState(() {}); // Aggiorna lo slider nel popup
+                              setState(
+                                () => _searchRadius = v,
+                              ); // Aggiorna la mappa
+                              setDialogState(
+                                () {},
+                              ); // Aggiorna lo slider nel popup
                             },
                           ),
                         ],
@@ -838,8 +1001,14 @@ class _PickUpMapState extends State<PickUpMap> {
                             setDialogState(() {});
                           },
                           items: const [
-                            DropdownMenuItem(value: 'Google Maps', child: Text('Google')),
-                            DropdownMenuItem(value: 'Apple Maps', child: Text('Apple')),
+                            DropdownMenuItem(
+                              value: 'Google Maps',
+                              child: Text('Google'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Apple Maps',
+                              child: Text('Apple'),
+                            ),
                           ],
                         ),
                       ),
@@ -847,10 +1016,13 @@ class _PickUpMapState extends State<PickUpMap> {
                       // PULISCI CACHE
                       TextButton.icon(
                         icon: const Icon(Icons.delete_sweep, color: Colors.red),
-                        label: Text(Translator.of('clear_cache'), style: const TextStyle(color: Colors.red)),
+                        label: Text(
+                          Translator.of('clear_cache'),
+                          style: const TextStyle(color: Colors.red),
+                        ),
                         onPressed: () {
                           setState(() => _markers = []);
-                          
+
                           Navigator.pop(context);
 
                           scaffoldMessengerKey.currentState?.showSnackBar(
@@ -859,7 +1031,9 @@ class _PickUpMapState extends State<PickUpMap> {
                                 Translator.of('cache_cleared'),
                                 style: const TextStyle(color: Colors.white),
                               ),
-                              backgroundColor: Theme.of(context).colorScheme.error,
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.error,
                               behavior: SnackBarBehavior.floating,
                             ),
                           );
@@ -874,13 +1048,13 @@ class _PickUpMapState extends State<PickUpMap> {
                     child: Text(
                       "OK",
                       style: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
-              )
+              ),
             );
           },
         );
@@ -907,14 +1081,14 @@ class _PickUpMapState extends State<PickUpMap> {
 
       // Recuperiamo lo sport dal tag Key del marker
       if (marker.key is ValueKey<String?>) {
-        final String? sportMarker = (marker.key as ValueKey<String?>).value; 
+        final String? sportMarker = (marker.key as ValueKey<String?>).value;
 
         if (sportMarker == null) return false;
 
         final String sportsOfMarker = sportMarker.split('|').last.toLowerCase();
-        
-        return _selectedSports.any((filter) => 
-          sportsOfMarker.contains(filter.toLowerCase())
+
+        return _selectedSports.any(
+          (filter) => sportsOfMarker.contains(filter.toLowerCase()),
         );
       }
       return false;
@@ -929,7 +1103,8 @@ class _PickUpMapState extends State<PickUpMap> {
           builder: (context) => IconButton(
             icon: const Icon(Icons.menu),
             tooltip: Translator.of('open_menu'), // Traduzione del tooltip
-            onPressed: () => Scaffold.of(context).openDrawer(), // Apre il drawer
+            onPressed: () =>
+                Scaffold.of(context).openDrawer(), // Apre il drawer
           ),
         ),
         bottom: PreferredSize(
@@ -939,168 +1114,249 @@ class _PickUpMapState extends State<PickUpMap> {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surfaceContainer,
-              border: Border(top: BorderSide(color: Theme.of(context).dividerColor, width: 0.5)),
+              border: Border(
+                top: BorderSide(
+                  color: Theme.of(context).dividerColor,
+                  width: 0.5,
+                ),
+              ),
             ),
             child: Row(
               children: [
-                  MenuAnchor(
-                    style: MenuStyle(
-                      backgroundColor: WidgetStateProperty.all(Theme.of(context).cardColor),
-                      elevation: WidgetStateProperty.all(8),
+                MenuAnchor(
+                  style: MenuStyle(
+                    backgroundColor: WidgetStateProperty.all(
+                      Theme.of(context).cardColor,
                     ),
-                    builder: (context, controller, child) {
-                      return GestureDetector(
-                        onTap: () {
-                          if (controller.isOpen) {
-                            controller.close();
-                          } else {
-                            controller.open();
-                          }
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.filter_list, color: Colors.white, size: 18),
-                              const SizedBox(width: 8),
-                              Text(
-                                Translator.of('sports'),
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                              ),
-                              const Icon(Icons.arrow_drop_down, color: Colors.white),
-                            ],
-                          ),
+                    elevation: WidgetStateProperty.all(8),
+                  ),
+                  builder: (context, controller, child) {
+                    return GestureDetector(
+                      onTap: () {
+                        if (controller.isOpen) {
+                          controller.close();
+                        } else {
+                          controller.open();
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
                         ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.filter_list,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              Translator.of('sports'),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const Icon(
+                              Icons.arrow_drop_down,
+                              color: Colors.white,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                  menuChildren: [
+                    // --- PULSANTE SELEZIONA/DESELEZIONA TUTTO ---
+                    MenuItemButton(
+                      closeOnActivate: false,
+                      onPressed: () {
+                        setState(() {
+                          if (_selectedSports.length ==
+                              _availableSports.length) {
+                            _selectedSports.clear(); // Deseleziona tutto
+                          } else {
+                            _selectedSports.clear();
+                            _selectedSports.addAll(
+                              _availableSports,
+                            ); // Seleziona tutto
+                          }
+                          _showSearchButton = true;
+                        });
+                      },
+                      child: Container(
+                        width: 200,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _selectedSports.length == _availableSports.length
+                                  ? Icons.indeterminate_check_box
+                                  : Icons.select_all,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              _selectedSports.length == _availableSports.length
+                                  ? Translator.of('deselect_all')
+                                  : Translator.of('select_all'),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const Divider(
+                      height: 1,
+                    ), // Linea di separazione tra il comando rapido e la lista
+                    // --- LISTA DEGLI SPORT ---
+                    ...uniqueSports.map((sport) {
+                      final label = Translator.of(sport);
+                      final isSelected = _selectedSports.any(
+                        (s) => Translator.of(s) == label,
                       );
-                    },
-                    menuChildren: [
-                      // --- PULSANTE SELEZIONA/DESELEZIONA TUTTO ---
-                      MenuItemButton(
+
+                      return MenuItemButton(
                         closeOnActivate: false,
                         onPressed: () {
                           setState(() {
-                            if (_selectedSports.length == _availableSports.length) {
-                              _selectedSports.clear(); // Deseleziona tutto
+                            final relatedSports = _availableSports
+                                .where((s) => Translator.of(s) == label)
+                                .toList();
+
+                            if (isSelected) {
+                              _selectedSports.removeWhere(
+                                (s) => relatedSports.contains(s),
+                              );
                             } else {
-                              _selectedSports.clear();
-                              _selectedSports.addAll(_availableSports); // Seleziona tutto
+                              _selectedSports.addAll(relatedSports);
                             }
                             _showSearchButton = true;
                           });
                         },
                         child: Container(
                           width: 200,
-                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          padding: const EdgeInsets.symmetric(vertical: 4),
                           child: Row(
                             children: [
                               Icon(
-                                _selectedSports.length == _availableSports.length 
-                                    ? Icons.indeterminate_check_box 
-                                    : Icons.select_all,
-                                color: Theme.of(context).colorScheme.primary,
+                                isSelected
+                                    ? Icons.check_box
+                                    : Icons.check_box_outline_blank,
+                                color: isSelected
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Colors.grey,
+                                size: 22,
+                              ),
+                              const SizedBox(width: 12),
+                              Icon(
+                                _getIconDataForSport(sport),
+                                color: _getIconColorForSport(sport),
+                                size: 20,
                               ),
                               const SizedBox(width: 12),
                               Text(
-                                _selectedSports.length == _availableSports.length 
-                                    ? Translator.of('deselect_all') 
-                                    : Translator.of('select_all'),
-                                style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
+                                Translator.of(sport),
+                                style: TextStyle(
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                  color: isSelected
+                                      ? Theme.of(context).colorScheme.primary
+                                      : null,
+                                ),
                               ),
                             ],
                           ),
                         ),
-                      ),
-                      const Divider(height: 1), // Linea di separazione tra il comando rapido e la lista
+                      );
+                    }),
+                  ],
+                ),
 
-                      // --- LISTA DEGLI SPORT ---
-                      ...uniqueSports.map((sport) {
-                        final label = Translator.of(sport);
-                        final isSelected = _selectedSports.any((s) => Translator.of(s) == label);
-
-                        return MenuItemButton(
-                          closeOnActivate: false,
-                          onPressed: () {
-                            setState(() {
-                              final relatedSports = _availableSports.where((s) => Translator.of(s) == label).toList();  
-
-                              if (isSelected) {
-                                _selectedSports.removeWhere((s) => relatedSports.contains(s));
-                              } else {
-                                _selectedSports.addAll(relatedSports);
-                              }
-                              _showSearchButton = true;
-                            });
-                          },
-                          child: Container(
-                            width: 200,
-                            padding: const EdgeInsets.symmetric(vertical: 4),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  isSelected ? Icons.check_box : Icons.check_box_outline_blank,
-                                  color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey,
-                                  size: 22,
-                                ),
-                                const SizedBox(width: 12),
-                                Icon(
-                                  _getIconDataForSport(sport), 
-                                  color: _getIconColorForSport(sport), 
-                                  size: 20
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  Translator.of(sport),
-                                  style: TextStyle(
-                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                    color: isSelected ? Theme.of(context).colorScheme.primary : null,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }),
-                    ],
-                  ),
-                
-                const VerticalDivider(color: Colors.white24, indent: 10, endIndent: 10),
+                const VerticalDivider(
+                  color: Colors.white24,
+                  indent: 10,
+                  endIndent: 10,
+                ),
 
                 // CONTATORE VELOCE (Mostra quanti sport hai selezionato)
                 Expanded(
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
-                      children: _selectedSports.isEmpty 
-                        ? [Text(Translator.of('all_sports'), style: const TextStyle(color: Colors.white54, fontSize: 13))]
-                        : _selectedSports.map((s) => Translator.of(s)).toSet().toList().map((label) {
-                            // Troviamo uno sport rappresentativo per l'icona
-                            final repSport = _availableSports.firstWhere((s) => Translator.of(s) == label);
-                            return Container(
-                              margin: const EdgeInsets.only(right: 6),
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: _getIconColorForSport(repSport).withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: _getIconColorForSport(repSport).withValues(alpha: 0.5))
+                      children: _selectedSports.isEmpty
+                          ? [
+                              Text(
+                                Translator.of('all_sports'),
+                                style: const TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 13,
+                                ),
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(_getIconDataForSport(repSport), size: 12, color: _getIconColorForSport(repSport)),
-                                  const SizedBox(width: 4),
-                                  Text(label, style: const TextStyle(color: Colors.white, fontSize: 11)),
-                                ],
-                              ),
-                            );
-                          }).toList(),
+                            ]
+                          : _selectedSports
+                                .map((s) => Translator.of(s))
+                                .toSet()
+                                .toList()
+                                .map((label) {
+                                  // Troviamo uno sport rappresentativo per l'icona
+                                  final repSport = _availableSports.firstWhere(
+                                    (s) => Translator.of(s) == label,
+                                  );
+                                  return Container(
+                                    margin: const EdgeInsets.only(right: 6),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: _getIconColorForSport(
+                                        repSport,
+                                      ).withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: _getIconColorForSport(
+                                          repSport,
+                                        ).withValues(alpha: 0.5),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          _getIconDataForSport(repSport),
+                                          size: 12,
+                                          color: _getIconColorForSport(
+                                            repSport,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          label,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                })
+                                .toList(),
                     ),
                   ),
-                ),               
+                ),
               ],
             ),
           ),
@@ -1110,13 +1366,21 @@ class _PickUpMapState extends State<PickUpMap> {
         child: Column(
           children: [
             DrawerHeader(
-              decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+              ),
               child: const Center(
-                child: Text('PickUp', style: TextStyle(color: Colors.white, fontSize: 28)),
+                child: Text(
+                  'PickUp',
+                  style: TextStyle(color: Colors.white, fontSize: 28),
+                ),
               ),
             ),
             ListTile(
-              leading: Icon(Icons.language, color: Theme.of(context).colorScheme.primary),
+              leading: Icon(
+                Icons.language,
+                color: Theme.of(context).colorScheme.primary,
+              ),
               title: Text(Translator.of('language')),
               trailing: DropdownButton<String>(
                 value: Translator.currentLanguage,
@@ -1133,19 +1397,49 @@ class _PickUpMapState extends State<PickUpMap> {
                 ],
               ),
             ),
-            
+
             const Divider(),
 
             ListTile(
-              leading: Icon(Icons.settings, color: Theme.of(context).colorScheme.secondary),
+              leading: Icon(
+                Icons.settings,
+                color: Theme.of(context).colorScheme.secondary,
+              ),
               title: Text(Translator.of('settings')),
               onTap: () {
                 Navigator.pop(context); // Chiude il drawer
-                _showSettingsDialog();  // Apre il popup
+                _showSettingsDialog(); // Apre il popup
               },
-            ),            
-            
+            ),
+
             const Spacer(), // Spinge tutto quello che segue in fondo
+
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 8.0,
+              ),
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 2,
+                ),
+                onPressed: () {
+                  print("Login premuto");
+                  Navigator.pop(context); // Chiude il drawer
+                },
+                icon: const Icon(Icons.login, color: Colors.white),
+                label: Text(
+                  Translator.of('LOGIN'),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ),
+            ),
 
             const Divider(),
             InkWell(
@@ -1154,11 +1448,18 @@ class _PickUpMapState extends State<PickUpMap> {
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
-                    Text(Translator.of('developed_by'), style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                    Text(
+                      Translator.of('developed_by'),
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
                     const SizedBox(height: 4),
                     const Text(
                       "CONSULTITS",
-                      style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2, color: Colors.blueGrey),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2,
+                        color: Colors.blueGrey,
+                      ),
                     ),
                   ],
                 ),
@@ -1174,6 +1475,9 @@ class _PickUpMapState extends State<PickUpMap> {
             options: MapOptions(
               initialCenter: _currentMapCenter,
               initialZoom: 14.0,
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.all, // Abilita tutte le interazioni
+              ),
               onMapReady: () {
                 if (_currentMapCenter != milanDefault) {
                   _mapController.move(_currentMapCenter, 14.5);
@@ -1190,18 +1494,19 @@ class _PickUpMapState extends State<PickUpMap> {
             ),
             children: [
               TileLayer(
-                key: ValueKey("${Translator.currentLanguage}_${widget.isDarkMode}"),
+                key: ValueKey(
+                  "${Translator.currentLanguage}_${widget.isDarkMode}",
+                ),
                 urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
                 userAgentPackageName: 'com.pickup.app',
                 evictErrorTileStrategy: EvictErrorTileStrategy.none,
-                tileDisplay: const TileDisplay.fadeIn()
+                tileDisplay: const TileDisplay.fadeIn(),
               ),
               MarkerLayer(markers: displayedMarkers),
             ],
           ),
-          
-          if (_isLoading)
-            const Center(child: CircularProgressIndicator()),
+
+          if (_isLoading) const Center(child: CircularProgressIndicator()),
 
           if (_showSearchButton)
             Positioned(
@@ -1211,7 +1516,10 @@ class _PickUpMapState extends State<PickUpMap> {
               child: Center(
                 child: FloatingActionButton.extended(
                   onPressed: () => _fetchMultiSportCourts(),
-                  label: Text(Translator.of('search_here'), style: TextStyle(color: Colors.white)),
+                  label: Text(
+                    Translator.of('search_here'),
+                    style: TextStyle(color: Colors.white),
+                  ),
                   icon: const Icon(Icons.refresh, color: Colors.white),
                   backgroundColor: Theme.of(context).colorScheme.primary,
                 ),
@@ -1220,9 +1528,14 @@ class _PickUpMapState extends State<PickUpMap> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _initializeLocation(false), // Ri-esegue il check posizione e sposta la mappa
+        onPressed: () => _initializeLocation(
+          false,
+        ), // Ri-esegue il check posizione e sposta la mappa
         backgroundColor: Colors.white,
-        child: Icon(Icons.my_location, color: Theme.of(context).colorScheme.primary),
+        child: Icon(
+          Icons.my_location,
+          color: Theme.of(context).colorScheme.primary,
+        ),
       ),
     );
   }
