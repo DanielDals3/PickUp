@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart'; // Fondamentale per MapPosition
 import 'package:latlong2/latlong.dart';
-import '../services/translator.dart';
+import '../services/translator_service.dart';
 
 class MapWidget extends StatelessWidget {
   final MapController mapController;

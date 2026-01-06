@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/sport_utils.dart';
-import '../services/translator.dart';
+import '../services/translator_service.dart';
 
 class SportBadge extends StatelessWidget {
   final String sportKey;

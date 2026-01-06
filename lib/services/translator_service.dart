@@ -1,8 +1,8 @@
 class Translator {
-  static String currentLanguage = 'it';
 
   static const Map<String, Map<String, String>> _data = {
     'it': {
+      'system_language': 'Sistema',
       'app_title': 'PickUp',
       'search_here': 'Cerca in questa zona',
       'language': 'Lingua',
@@ -72,8 +72,10 @@ class Translator {
       'theme_light': 'Chiaro',
       'theme_dark': 'Scuro',
       'theme' : 'Tema',
+      'see_results': 'Vedi risultati'
     },
     'en': {
+      'system_language': 'System',
       'app_title': 'PickUp',
       'search_here': 'Search in this area',
       'language': 'Language',
@@ -143,10 +145,20 @@ class Translator {
       'theme_light': 'Light',
       'theme_dark': 'Dark',
       'theme' : 'Theme',
+      'see_results': 'See results'
     }
   };
 
-  static String of(String key) {
-    return _data[currentLanguage]?[key.toLowerCase()] ?? key;
+  static String of(String key, {String? overrideLang}) {
+    // 1. Se forziamo una lingua (es. durante il caricamento), usa quella
+    // 2. Altrimenti usa currentLanguage (che aggiorneremo dal MaterialApp)
+    // 3. Fallback su 'it'
+    String lang = overrideLang ?? currentLanguage;
+    
+    return _data[lang]?[key.toLowerCase()] ?? 
+           _data['it']?[key.toLowerCase()] ?? // Fallback su italiano se manca in EN
+           key;
   }
+
+  static String currentLanguage = 'it';
 }

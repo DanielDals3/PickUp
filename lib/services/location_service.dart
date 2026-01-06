@@ -1,17 +1,24 @@
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
+class LocationResult {
+  final LatLng position;
+  final bool isRealGps;
+
+  LocationResult(this.position, this.isRealGps);
+}
+
 class LocationService {
   static const LatLng locationDefault = LatLng(45.4642, 9.1900); // Coordinate di default (Milano)
 
-  static Future<LatLng> getCurrentLocation() async {
+  static Future<LocationResult> getCurrentLocation() async {
     bool serviceEnabled;
     LocationPermission permission;
 
     // 1. Controlla se il GPS è attivo
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      return locationDefault;
+      return LocationResult(locationDefault, false);
     }
 
     // 2. Gestisci i permessi
@@ -19,12 +26,12 @@ class LocationService {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        return locationDefault;
+        return LocationResult(locationDefault, false);
       }
     }
     
     if (permission == LocationPermission.deniedForever) {
-      return locationDefault;
+      return LocationResult(locationDefault, false);
     }
 
     // 3. Ottieni la posizione reale
@@ -38,18 +45,18 @@ class LocationService {
       );
       
       // Se ha successo, restituisci subito questa
-      return LatLng(position.latitude, position.longitude);
+      return LocationResult(LatLng(position.latitude, position.longitude), true);
 
     } catch (e) {
       // 2. Se fallisce (es. timeout o segnale GPS debole), prova l'ultima nota
       Position? lastPos = await Geolocator.getLastKnownPosition();
       
       if (lastPos != null) {
-        return LatLng(lastPos.latitude, lastPos.longitude);
+        return LocationResult(LatLng(lastPos.latitude, lastPos.longitude), true);
       }
       
       // 3. Se neanche l'ultima nota esiste, vai al default
-      return locationDefault;
+      return LocationResult(locationDefault, false);
     }
   }
 }

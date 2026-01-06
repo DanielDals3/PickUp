@@ -1,6 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:pickup/services/translator_service.dart';
 
 class SportUtils {
+  static List<String> get availableSports => _availableSports;
+
+  static final List<String> _availableSports = ['basketball', 'soccer', 'tennis', 'volleyball', 'beachvolleyball',
+    'fitness', 'climbing', 'swimming', 'yoga', 'gymnastics', 'cycling', 'running', 'table_tennis', 'skiing', 
+     'padel', 'gym', 'football', 'snowboarding', 'rugby_union', 'rugby', 'rugby_league', 'american_football',
+     'baseball', 'softball', 'skateboard', 'skateboarding', 'golf', 'martial_arts', 'karate', 'judo', 'equestrian',
+     'horse_riding', 'hockey', 'ice_hockey', 'boules', 'bocce', 'volley', 'boxing', 'calisthenics','snowboard',
+     'roller_hockey' ];
+
   static IconData getIconData(String sport) {
     switch (sport.trim().toLowerCase()) {
       case 'unknown':
@@ -166,5 +176,26 @@ class SportUtils {
         color: getIconColor(sport)
       ),
     );
+  }
+
+  static List<String> get uniqueSports {
+    final Set<String> seenLabels = {};
+    final List<String> list = SportUtils._availableSports.where((sport) {
+      final label = Translator.of(sport);
+      if (seenLabels.contains(label)) return false;
+      seenLabels.add(label);
+      return true;
+    }).toList();
+    
+    list.sort((a, b) => Translator.of(a).compareTo(Translator.of(b)));
+    return list;
+  }
+
+  static List<String> getCleanedSportsForCourt(List<String> rawSports) {
+    return rawSports
+        .map((s) => s.trim().toLowerCase())
+        .where((s) => _availableSports.contains(s))
+        .toSet() // Rimuove duplicati ID (es. football e soccer)
+        .toList();
   }
 }

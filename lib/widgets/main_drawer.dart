@@ -1,19 +1,24 @@
 import 'package:flutter/material.dart';
-import '../services/translator.dart';
+import '../services/translator_service.dart';
 import '../utils/app_utils.dart';
 
 class MainDrawer extends StatelessWidget {
   final VoidCallback onOpenSettings;
-  final Function(String) onLanguageChanged;
+  final Locale? currentLocale;
+  final Function(String?) onLanguageChanged;
 
   const MainDrawer({
     super.key,
+    this.currentLocale,
     required this.onOpenSettings,
     required this.onLanguageChanged,
   });
 
   @override
   Widget build(BuildContext context) {
+
+    final String currentLangCode = currentLocale?.languageCode ?? 'system';
+
     return Drawer(
       child: Column( // Usiamo Column per poter mettere il footer in fondo
         children: [
@@ -35,17 +40,19 @@ class MainDrawer extends StatelessWidget {
             leading: Icon(Icons.language, color: Theme.of(context).colorScheme.primary),
             title: Text(Translator.of('language')),
             trailing: DropdownButton<String>(
-              value: Translator.currentLanguage,
+              value: currentLangCode,
               underline: const SizedBox(),
               onChanged: (String? newValue) {
-                if (newValue != null) {
                   onLanguageChanged(newValue);
                   Navigator.pop(context); // Chiude il drawer dopo il cambio
-                }
               },
-              items: const [
-                DropdownMenuItem(value: 'it', child: Text('Italiano 🇮🇹')),
-                DropdownMenuItem(value: 'en', child: Text('English 🇺🇸')),
+              items: [
+                DropdownMenuItem(
+                  value: 'system', 
+                  child: Text(Translator.of('system_language')), // Aggiungi questa chiave nel Translator
+                ),
+                const DropdownMenuItem(value: 'it', child: Text('Italiano 🇮🇹')),
+                const DropdownMenuItem(value: 'en', child: Text('English 🇺🇸')),
               ],
             ),
           ),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/translator.dart';
+import '../services/translator_service.dart';
 
 class SearchButton extends StatelessWidget {
   final VoidCallback onPressed;

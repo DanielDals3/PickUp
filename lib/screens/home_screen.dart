@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:pickup/models/sport_court.dart';
+import 'package:pickup/services/court_service.dart';
 import 'package:pickup/services/location_service.dart';
 import 'package:pickup/utils/sport_utils.dart';
 import 'package:pickup/widgets/court_details_sheet.dart';
+import 'package:pickup/widgets/court_list_sheet.dart';
 import 'package:pickup/widgets/main_drawer.dart';
 import 'package:pickup/widgets/map_widget.dart';
 import 'package:pickup/widgets/search_button.dart';
 import '../services/api_service.dart';
-import '../services/translator.dart';
+import '../services/translator_service.dart';
 import '../widgets/sport_badge.dart';
 import '../screens/settings_dialog.dart';
 import 'dart:convert';
@@ -17,15 +19,19 @@ import 'dart:convert';
 class HomeScreen extends StatefulWidget {
   final ThemeMode currentThemeMode;
   final String currentNav;
+  final Locale? currentLocale;
   final Function(ThemeMode) onThemeChanged;
   final Function(String) onNavChanged;
+  final Function(String?) onLanguageChanged;
 
   const HomeScreen({
     super.key,
     required this.currentThemeMode,
     required this.currentNav,
+    this.currentLocale,
     required this.onThemeChanged,
     required this.onNavChanged,
+    required this.onLanguageChanged,
   });
 
   @override
@@ -40,13 +46,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _showSearchButton = false;
   
   LatLng _currentMapCenter = const LatLng(45.4642, 9.1900); // Milano default
+  bool _isGpsActive = false;
 
-  final List<String> _availableSports = ['basketball', 'soccer', 'tennis', 'volleyball', 'beachvolleyball',
-    'fitness', 'climbing', 'swimming', 'yoga', 'gymnastics', 'cycling', 'running', 'table_tennis', 'skiing', 
-     'padel', 'gym', 'football', 'snowboarding', 'rugby_union', 'rugby', 'rugby_league', 'american_football',
-     'baseball', 'softball', 'skateboard', 'skateboarding', 'golf', 'martial_arts', 'karate', 'judo', 'equestrian',
-     'horse_riding', 'hockey', 'ice_hockey', 'boules', 'bocce', 'volley', 'boxing', 'calisthenics','snowboard',
-     'roller_hockey' ];
   final List<String> _selectedSports = [];
 
   @override
@@ -56,20 +57,6 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeLocation(true);
     });
-  }
-
-  // --- LOGICA DI FILTRAGGIO ---
-  // Lista degli sport univoci tradotti e ordinati (per il menu)
-  List<String> get _uniqueSports {
-    final Set<String> seenLabels = {};
-    final List<String> list = _availableSports.where((sport) {
-      final label = Translator.of(sport);
-      if (seenLabels.contains(label)) return false;
-      seenLabels.add(label);
-      return true;
-    }).toList();
-    list.sort((a, b) => Translator.of(a).compareTo(Translator.of(b)));
-    return list;
   }
 
   // Markers filtrati in tempo reale
@@ -120,19 +107,20 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _isLoading = true);
 
     // CHIAMATA AL SERVICE
-    LatLng targetLocation = await LocationService.getCurrentLocation();
+    final result = await LocationService.getCurrentLocation();
 
-    _moveToLocation(targetLocation, isInitial);
-  }
-
-  void _moveToLocation(LatLng target, [bool isInitial = false]) {
     if (!mounted) return;
 
     setState(() {
-      _currentMapCenter = target;
+      _currentMapCenter = result.position;
+      _isGpsActive = result.isRealGps;
       _isLoading = false;
     });
-    
+
+    _moveToLocation(result.position, isInitial);
+  }
+
+  void _moveToLocation(final target, [bool isInitial = false]) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _mapController.move(target, 14.5);
         });
@@ -162,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     String sportsQuery = _selectedSports.isEmpty 
-        ? _availableSports.join('|') 
+        ? SportUtils.availableSports.join('|') 
         : _selectedSports.join('|');
 
     // Query che cerca diversi tipi di sport contemporaneamente
@@ -217,7 +205,30 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context) => CourtDetailsSheet(
         court: court,
         preferredNav: widget.currentNav,
-        availableSports: _availableSports, // Variabile di stato della HomeScreen
+        availableSports: SportUtils.availableSports, // Variabile di stato della HomeScreen
+      ),
+    );
+  }
+
+  void _openFieldsList() {
+    final sorted = CourtService.sortCourts(
+      courts: _courts,
+      currentPos: _currentMapCenter,
+      isGpsActive: _isGpsActive,
+    );
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => CourtListSheet(
+        courts: sorted,
+        currentPos: _currentMapCenter,
+        showDistance: _isGpsActive, // Mostra i km solo se non è il default di Milano
+        onCourtTap: (court) {
+          Navigator.pop(context);
+          _mapController.move(court.position, 17);
+        },
       ),
     );
   }
@@ -235,7 +246,7 @@ class _HomeScreenState extends State<HomeScreen> {
     Map<IconData, String> uniqueIconsMap = {};
     
     for (var sport in rawSports) {
-      if (!_availableSports.contains(sport)) {
+      if (!SportUtils.availableSports.contains(sport)) {
         // Filtra solo sport gestiti
         continue;
       }
@@ -337,7 +348,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildSportsMenu() {
-    final bool allSelected = _selectedSports.length == _availableSports.length;
+    final bool allSelected = _selectedSports.length == SportUtils.availableSports.length;
 
     return MenuAnchor(
       style: MenuStyle(
@@ -376,7 +387,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 _selectedSports.clear();
               } else {
                 _selectedSports.clear();
-                _selectedSports.addAll(_availableSports);
+                _selectedSports.addAll(SportUtils.availableSports);
               }
               _showSearchButton = true;
             });
@@ -406,7 +417,7 @@ class _HomeScreenState extends State<HomeScreen> {
         const Divider(height: 1),
 
         // --- LISTA DEGLI SPORT ---
-        ..._uniqueSports.map((sport) {
+        ...SportUtils.uniqueSports.map((sport) {
           final label = Translator.of(sport);
           final isSelected = _selectedSports.any((s) => Translator.of(s) == label);
 
@@ -414,7 +425,7 @@ class _HomeScreenState extends State<HomeScreen> {
             closeOnActivate: false,
             onPressed: () {
               setState(() {
-                final relatedSports = _availableSports.where((s) => Translator.of(s) == label).toList();
+                final relatedSports = SportUtils.availableSports.where((s) => Translator.of(s) == label).toList();
                 if (isSelected) {
                   _selectedSports.removeWhere((s) => relatedSports.contains(s));
                 } else {
@@ -496,11 +507,8 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: _buildAppBar(),
       drawer: MainDrawer(
         onOpenSettings: _openSettings,
-        onLanguageChanged: (newLang) {
-          setState(() {
-            Translator.currentLanguage = newLang;
-          });
-        },
+        onLanguageChanged: widget.onLanguageChanged,
+        currentLocale: widget.currentLocale,
       ),
       body: Stack(
         children: [
@@ -521,16 +529,33 @@ class _HomeScreenState extends State<HomeScreen> {
           
           if (_sportCounts.isNotEmpty && !_showSearchButton)
             Positioned(
-              bottom: 20,
+              bottom: 80,
               left: 10,
               right: 10,
               child: Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: _sportCounts.entries
-                    .where((e) => _availableSports.contains(e.key))
+                    .where((e) => SportUtils.availableSports.contains(e.key))
                     .map((e) => SportBadge(sportKey: e.key, count: e.value))
                     .toList(),
+              ),
+            ),
+
+            if (_sportCounts.isNotEmpty && !_showSearchButton)
+            Positioned(
+              bottom: 20,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: FloatingActionButton.extended(
+                  heroTag: "listBtn",
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Colors.white,
+                  icon: const Icon(Icons.format_list_bulleted),
+                  label: Text("${Translator.of('see_results')} (${_sportCounts.length})"),
+                  onPressed: _openFieldsList,
+                ),
               ),
             ),
 

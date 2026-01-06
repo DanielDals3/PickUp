@@ -40,6 +40,8 @@ dependencies:
   latlong2: ^0.9.0         # Per gestire le coordinate GPS
   http: ^1.1.0             # Per scaricare i dati dei campetti da Overpass
   shared_preferences: ^2.3.2  # Per salvare le preferenze dell'utente (tema, navigatore preferito)
+  flutter_localizations:   # Per la localizzazione dell'app
+    sdk: flutter
 
 dev_dependencies:
   flutter_test:
