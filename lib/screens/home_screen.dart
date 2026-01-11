@@ -47,6 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
   
   LatLng _currentMapCenter = const LatLng(45.4642, 9.1900); // Milano default
   bool _isGpsActive = false;
+  bool _isSatellite = false;
 
   final List<String> _selectedSports = [];
 
@@ -510,13 +511,28 @@ class _HomeScreenState extends State<HomeScreen> {
         onLanguageChanged: widget.onLanguageChanged,
         currentLocale: widget.currentLocale,
       ),
+      
+      // USIAMO IL GPS DELLO SCAFFOLD (È la soluzione più robusta per Android/iOS)
+      floatingActionButton: FloatingActionButton(
+        heroTag: "gpsBtn", // Importante dare un tag unico
+        onPressed: () => _initializeLocation(false),
+        backgroundColor: Colors.white,
+        elevation: 4,
+        child: Icon(
+          Icons.my_location, 
+          color: Theme.of(context).colorScheme.primary
+        ),
+      ),
+
       body: Stack(
         children: [
+          // 1. MAPPA
           MapWidget(
             mapController: _mapController,
             markers: _displayedMarkers,
             initialCenter: _currentMapCenter,
             isDarkMode: Theme.of(context).brightness == Brightness.dark,
+            isSatellite: _isSatellite,
             onPositionChanged: (camera, hasGesture) {
               if (hasGesture) {
                 setState(() {
@@ -526,53 +542,75 @@ class _HomeScreenState extends State<HomeScreen> {
               }
             },
           ),
-          
-          if (_sportCounts.isNotEmpty && !_showSearchButton)
-            Positioned(
-              bottom: 80,
-              left: 10,
-              right: 10,
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _sportCounts.entries
-                    .where((e) => SportUtils.availableSports.contains(e.key))
-                    .map((e) => SportBadge(sportKey: e.key, count: e.value))
-                    .toList(),
+
+          // 2. TASTO SATELLITE
+          Positioned(
+            right: 15,
+            bottom: 90, 
+            child: SafeArea(
+              child: FloatingActionButton.small(
+                heroTag: "satBtn",
+                backgroundColor: Colors.white,
+                elevation: 4,
+                onPressed: () => setState(() => _isSatellite = !_isSatellite),
+                child: Icon(
+                  _isSatellite ? Icons.map : Icons.satellite_alt,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
               ),
             ),
+          ),
 
-            if (_sportCounts.isNotEmpty && !_showSearchButton)
-            Positioned(
-              bottom: 20,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: FloatingActionButton.extended(
-                  heroTag: "listBtn",
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Colors.white,
-                  icon: const Icon(Icons.format_list_bulleted),
-                  label: Text("${Translator.of('see_results')} (${_sportCounts.length})"),
-                  onPressed: _openFieldsList,
+          // 3. ZONA RISULTATI
+          if (_sportCounts.isNotEmpty && !_showSearchButton)
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Badge degli sport (Wrap li manda a capo se sono troppi)
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        alignment: WrapAlignment.center,
+                        children: _sportCounts.entries
+                            .where((e) => SportUtils.availableSports.contains(e.key))
+                            .map((e) => SportBadge(sportKey: e.key, count: e.value))
+                            .toList(),
+                      ),
+                      const SizedBox(height: 12),
+                      // Tasto "Vedi Risultati"
+                      FloatingActionButton.extended(
+                        heroTag: "listBtn",
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Colors.white,
+                        icon: const Icon(Icons.format_list_bulleted),
+                        label: Text("${Translator.of('see_results')} (${_courts.length})"),
+                        onPressed: _openFieldsList,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
 
+          // 4. OVERLAYS (Ricerca e Caricamento)
           if (_isLoading) const Center(child: CircularProgressIndicator()),
           
           if (_showSearchButton)
-            SearchButton(onPressed: _fetchMultiSportCourts),
+            Align(
+              alignment: Alignment.topCenter,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 10), // Distanza dalla AppBar
+                  child: SearchButton(onPressed: _fetchMultiSportCourts),
+                ),
+              ),
+          ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _initializeLocation(false),
-        backgroundColor: Colors.white,
-        elevation: 4,
-        child: Icon(
-          Icons.my_location, 
-          color: Theme.of(context).colorScheme.primary
-        ),
       ),
     );
   }

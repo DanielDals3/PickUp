@@ -9,6 +9,7 @@ class MapWidget extends StatelessWidget {
   final LatLng initialCenter;
   final Function(MapCamera, bool) onPositionChanged; 
   final bool isDarkMode;
+  final bool isSatellite;
 
   const MapWidget({
     super.key,
@@ -17,10 +18,19 @@ class MapWidget extends StatelessWidget {
     required this.initialCenter,
     required this.onPositionChanged,
     required this.isDarkMode,
+    required this.isSatellite,
   });
 
   @override
   Widget build(BuildContext context) {
+    String urlTemplate;
+
+    if (isSatellite) {
+      urlTemplate = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+    } else {
+      urlTemplate = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+    }
+
     return FlutterMap(
       mapController: mapController,
       options: MapOptions(
@@ -31,11 +41,20 @@ class MapWidget extends StatelessWidget {
       ),
       children: [
         TileLayer(
-          key: ValueKey("${Translator.currentLanguage}_$isDarkMode"),
-          urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+          key: ValueKey("${Translator.currentLanguage}_{$isDarkMode}_{$isSatellite"),
+          urlTemplate: urlTemplate,
           userAgentPackageName: 'com.pickup.app',
           tileDisplay: const TileDisplay.fadeIn(),
         ),
+        Opacity(
+        opacity: isDarkMode ? 0.8 : 1.0, // Leggermente trasparente se tema scuro
+        child: TileLayer(
+          key: ValueKey("${isSatellite}_$isDarkMode"), 
+          urlTemplate: urlTemplate,
+          userAgentPackageName: 'com.pickup.app',
+          tileDisplay: const TileDisplay.fadeIn(),
+        ),
+      ),
         MarkerLayer(markers: markers),
       ],
     );
