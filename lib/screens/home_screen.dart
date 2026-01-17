@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:pickup/models/sport_court.dart';
+import 'package:pickup/screens/chat_list_screen.dart';
+import 'package:pickup/screens/profile_screen.dart';
 import 'package:pickup/services/court_service.dart';
 import 'package:pickup/services/location_service.dart';
 import 'package:pickup/utils/sport_utils.dart';
@@ -9,7 +11,6 @@ import 'package:pickup/widgets/court_details_sheet.dart';
 import 'package:pickup/widgets/court_list_sheet.dart';
 import 'package:pickup/widgets/main_drawer.dart';
 import 'package:pickup/widgets/map_widget.dart';
-import 'package:pickup/widgets/search_button.dart';
 import '../services/api_service.dart';
 import '../services/translator_service.dart';
 import '../widgets/sport_badge.dart';
@@ -48,6 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
   LatLng _currentMapCenter = const LatLng(45.4642, 9.1900); // Milano default
   bool _isGpsActive = false;
   bool _isSatellite = false;
+  int _currentIndex = 2;
 
   final List<String> _selectedSports = [];
   List<Marker> _displayedMarkers = [];
@@ -510,130 +512,159 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildMapBody() {
+    return Stack(
+      children: [
+        // 1. MAPPA
+        MapWidget(
+          mapController: _mapController,
+          markers: _displayedMarkers,
+          initialCenter: _currentMapCenter,
+          isDarkMode: Theme.of(context).brightness == Brightness.dark,
+          isSatellite: _isSatellite,
+          onPositionChanged: (camera, hasGesture) {
+            if (hasGesture) {
+              setState(() {
+                _showSearchButton = true;
+                _currentMapCenter = camera.center;
+              });
+            }
+          },
+        ),
+
+        // 2. TASTO REFRESH
+        Positioned(
+          top: 10,
+          right: 15,
+          child: SafeArea(
+            child: FloatingActionButton.small(
+              heroTag: "refreshSearchBtn",
+              backgroundColor: _showSearchButton ? Theme.of(context).colorScheme.primary : Colors.white,
+              onPressed: _isLoading ? null : _fetchMultiSportCourts,
+              child: _isLoading 
+                ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: _showSearchButton ? Colors.white : null))
+                : Icon(Icons.refresh, color: _showSearchButton ? Colors.white : Theme.of(context).colorScheme.primary),
+            ),
+          ),
+        ),
+
+        // 3. TASTI DI CONTROLLO MAPPA
+        Positioned(
+          right: 15,
+          bottom: 100,
+          child: Column(
+            children: [
+              FloatingActionButton.small(
+                heroTag: "satBtn",
+                backgroundColor: Colors.white,
+                onPressed: () => setState(() => _isSatellite = !_isSatellite),
+                child: Icon(_isSatellite ? Icons.map : Icons.satellite_alt, color: Theme.of(context).colorScheme.primary),
+              ),
+              const SizedBox(height: 12),
+              FloatingActionButton.small(
+                heroTag: "gpsBtn",
+                backgroundColor: Colors.white,
+                onPressed: () => _initializeLocation(false),
+                child: Icon(Icons.my_location, color: Theme.of(context).colorScheme.primary),
+              ),
+            ],
+          ),
+        ),
+
+        // 4. ZONA RISULTATI (Badge + Lista)
+        if (_sportCounts.isNotEmpty)
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 100),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Wrap(
+                    spacing: 8, runSpacing: 8, alignment: WrapAlignment.center,
+                    children: _sportCounts.entries
+                        .where((e) => SportUtils.availableSports.contains(e.key))
+                        .map((e) => SportBadge(sportKey: e.key, count: e.value))
+                        .toList(),
+                  ),
+                  const SizedBox(height: 12),
+                  FloatingActionButton.extended(
+                    heroTag: "listBtn",
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Colors.white,
+                    icon: const Icon(Icons.format_list_bulleted),
+                    label: Text("${Translator.of('see_results')} (${_displayedMarkers.length})"),
+                    onPressed: _openFieldsList,
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData icon) {
+    bool isSelected = _currentIndex == index;
+    return IconButton(
+      icon: Icon(icon, 
+        color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey[600],
+        size: 22
+      ),
+      onPressed: () => setState(() => _currentIndex = index),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar(),
+      extendBody: true,
+      appBar: _currentIndex == 2 ? _buildAppBar() : null,
       drawer: MainDrawer(
         onOpenSettings: _openSettings,
         onLanguageChanged: widget.onLanguageChanged,
         currentLocale: widget.currentLocale,
       ),
       
+      // IL TASTO CENTRALE (HOME/MAPPA)
       floatingActionButton: FloatingActionButton(
-        heroTag: "gpsBtn",
-        onPressed: () => _initializeLocation(false),
-        backgroundColor: Colors.white,
-        elevation: 4,
-        child: Icon(
-          Icons.my_location, 
-          color: Theme.of(context).colorScheme.primary
+        heroTag: "homeBtn",
+        shape: const CircleBorder(),
+        backgroundColor: _currentIndex == 2 
+            ? Theme.of(context).colorScheme.primary 
+            : Colors.grey[300],
+        onPressed: () => setState(() => _currentIndex = 2),
+        child: const Icon(Icons.map, color: Colors.white, size: 26),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+
+      // LA TOOLBAR IN BASSO
+      bottomNavigationBar: BottomAppBar(
+        height: 60,
+        shape: const CircularNotchedRectangle(), // Crea l'incavo per il tasto mappa
+        notchMargin: 6.0,
+        padding: EdgeInsets.zero,
+        clipBehavior: Clip.antiAlias,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildNavItem(0, Icons.calendar_today_outlined),
+            _buildNavItem(1, Icons.people_outline),
+            const SizedBox(width: 48),
+            _buildNavItem(3, Icons.chat_bubble_outline),
+            _buildNavItem(4, Icons.person_outline),
+          ],
         ),
       ),
 
-      body: Stack(
+      body: IndexedStack(
+        index: _currentIndex,
         children: [
-          // 1. MAPPA
-          MapWidget(
-            mapController: _mapController,
-            markers: _displayedMarkers,
-            initialCenter: _currentMapCenter,
-            isDarkMode: Theme.of(context).brightness == Brightness.dark,
-            isSatellite: _isSatellite,
-            onPositionChanged: (camera, hasGesture) {
-              if (hasGesture) {
-                setState(() {
-                  _showSearchButton = true;
-                  _currentMapCenter = camera.center;
-                });
-              }
-            },
-          ),
-
-          // 2. TASTO SATELLITE
-          Positioned(
-            right: 15,
-            bottom: 90, 
-            child: SafeArea(
-              child: FloatingActionButton.small(
-                heroTag: "satBtn",
-                backgroundColor: Colors.white,
-                elevation: 4,
-                onPressed: () => setState(() => _isSatellite = !_isSatellite),
-                child: Icon(
-                  _isSatellite ? Icons.map : Icons.satellite_alt,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-            ),
-          ),
-
-          // 3. TASTO REFRESH
-          Positioned(
-            top: 10,
-            right: 15,
-            child: SafeArea(
-              child: FloatingActionButton.small(
-                heroTag: "refreshSearchBtn",
-                backgroundColor: _showSearchButton 
-                    ? Theme.of(context).colorScheme.primary 
-                    : Colors.white,
-                onPressed: _isLoading ? null : _fetchMultiSportCourts,
-                child: _isLoading 
-                  ? SizedBox(
-                      width: 18, 
-                      height: 18, 
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2, 
-                        // Se il bottone è colorato, spinner bianco. Se è bianco, spinner colorato.
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          _showSearchButton ? Colors.white : Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                    )
-                  : Icon(
-                      Icons.refresh, 
-                      color: _showSearchButton ? Colors.white : Theme.of(context).colorScheme.primary,
-                    ),
-              ),
-            ),
-          ),
-
-          // 4. ZONA RISULTATI
-          if (_sportCounts.isNotEmpty)
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Badge degli sport (Wrap li manda a capo se sono troppi)
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        alignment: WrapAlignment.center,
-                        children: _sportCounts.entries
-                            .where((e) => SportUtils.availableSports.contains(e.key))
-                            .map((e) => SportBadge(sportKey: e.key, count: e.value))
-                            .toList(),
-                      ),
-                      const SizedBox(height: 12),
-                      // Tasto "Vedi Risultati"
-                      FloatingActionButton.extended(
-                        heroTag: "listBtn",
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: Colors.white,
-                        icon: const Icon(Icons.format_list_bulleted),
-                        label: Text("${Translator.of('see_results')} (${_displayedMarkers.length})"),
-                        onPressed: _openFieldsList,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),    
+          const Center(child: Text("Prenotazioni")), // TODO: Crea screen dedicato
+          const Center(child: Text("Community")),    // TODO: Crea screen dedicato
+          _buildMapBody(),                            // Maps Screen
+          const ChatListScreen(),                     // Chat List Screen
+          const ProfileScreen(),                      // Profile Screen
         ],
       ),
     );

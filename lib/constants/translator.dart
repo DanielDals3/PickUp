@@ -68,6 +68,7 @@ class Translator {
       'calisthenics': 'Calisthenics',
       'snowboard': 'Snowboard',
       'roller_hockey': 'Hockey su rotelle',
+      'messages': 'Messaggi',
     },
     'en': {
       'app_title': 'PickUp',
@@ -135,6 +136,7 @@ class Translator {
       'calisthenics': 'Calisthenics',
       'snowboard': 'Snowboard',
       'roller_hockey': 'Roller Hockey',
+      'messages': 'Messages',
     }
   };
 
