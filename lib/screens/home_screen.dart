@@ -44,12 +44,14 @@ class _HomeScreenState extends State<HomeScreen> {
   List<SportCourt> _courts = [];
   bool _isLoading = false;
   bool _showSearchButton = false;
-  
+
   LatLng _currentMapCenter = const LatLng(45.4642, 9.1900); // Milano default
   bool _isGpsActive = false;
   bool _isSatellite = false;
 
   final List<String> _selectedSports = [];
+  List<Marker> _displayedMarkers = [];
+  Map<String, int> _sportCounts = {}; 
 
   @override
   void initState() {
@@ -60,50 +62,49 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // Markers filtrati in tempo reale
-  List<Marker> get _displayedMarkers {
-    // 1. Filtriamo i dati
-    final filteredCourts = _courts.where((court) {
-    if (_selectedSports.isEmpty) return true;
-      // Controlla se almeno uno degli sport del campo è tra quelli selezionati
-      return court.sports.any((sport) => _selectedSports.contains(sport));
-    }).toList();
+  // --- AZIONI ---
+  void _syncMarkers(){
+    setState(() {
+        // 1. Filtriamo i dati
+        final filteredCourts = _courts.where((court) {
+          if (_selectedSports.isEmpty) return true;
+            // Controlla se almeno uno degli sport del campo è tra quelli selezionati
+            return court.sports.any((sport) => _selectedSports.contains(sport));
+        }).toList();
 
-    // 2. Trasformiamo i dati filtrati in Widget
-    return filteredCourts.map((court) {
-      return Marker(
-        key: ValueKey("marker_${court.id}"),
-        point: court.position,
-        width: 40,
-        height: 40,
-        child: GestureDetector(
-          onTap: () => _showCourtDetails(
-            court
-          ),
-          child: _getMarkerIcon(court.sports.join(';')), 
-        ),
-      );
-    }).toList();
-  }
+        // 2. Trasformiamo in Marker e salviamo nella variabile di stato
+        _displayedMarkers = filteredCourts.map((court) {
+          return Marker(
+            key: ValueKey("marker_${court.id}"),
+            point: court.position,
+            width: 40,  
+            height: 40,
+            child: GestureDetector(
+              onTap: () => _showCourtDetails(court),
+              // Usiamo FaIcon qui dentro come abbiamo visto prima
+              child: _getMarkerIcon(court.sports.join(';')), 
+            ),
+          );
+        }).toList();
 
-  Map<String, int> get _sportCounts {
-    Map<String, int> counts = {};
-    for (var marker in _displayedMarkers) {
-      if (marker.key is ValueKey<String?>) {
-        final String? sportTag = (marker.key as ValueKey<String?>).value;
-        if (sportTag != null) {
-          final List<String> sports = sportTag.split('|').last.split(',');
-          for (var s in sports) {
-            final cleanSport = s.trim().toLowerCase();
-            counts[cleanSport] = (counts[cleanSport] ?? 0) + 1;
+        // 3. Calcoliamo i conteggi per gli sport mostrati
+        Map<String, int> counts = {};
+        for (var marker in _displayedMarkers) {
+          if (marker.key is ValueKey<String?>) {
+            final String? sportTag = (marker.key as ValueKey<String?>).value;
+            if (sportTag != null) {
+              final List<String> sports = sportTag.split('|').last.split(',');
+              for (var s in sports) {
+                final cleanSport = s.trim().toLowerCase();
+                counts[cleanSport] = (counts[cleanSport] ?? 0) + 1;
+              }
+            }
           }
         }
-      }
-    }
-    return counts;
+        _sportCounts = counts;
+    });
   }
 
-  // --- AZIONI ---
   Future<void> _initializeLocation(bool isInitial) async {
     setState(() => _isLoading = true);
 
@@ -121,7 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _moveToLocation(result.position, isInitial);
   }
 
-  void _moveToLocation(final target, [bool isInitial = false]) {
+  void _moveToLocation(final LatLng target, [bool isInitial = false]) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _mapController.move(target, 14.5);
         });
@@ -130,8 +131,6 @@ class _HomeScreenState extends State<HomeScreen> {
     Future.delayed(const Duration(milliseconds: 600), () {
       if (isInitial) {
         _fetchMultiSportCourts();
-      } else {
-        setState(() => _showSearchButton = true);
       }
     });
   }
@@ -148,6 +147,8 @@ class _HomeScreenState extends State<HomeScreen> {
       _isLoading = true;
       _showSearchButton = false;
       _courts = [];
+      _displayedMarkers = [];
+      _sportCounts = {};
     });
 
     String sportsQuery = _selectedSports.isEmpty 
@@ -171,13 +172,13 @@ class _HomeScreenState extends State<HomeScreen> {
               .map((e) => SportCourt.fromOSM(e))
               .toList();
               
-          _showSearchButton = false;
         }); 
       }
 
+      _syncMarkers();
+
       setState(() {
         _isLoading = false;
-        _showSearchButton = false;
       });
     } catch (e) {
       setState(() => _isLoading = false);
@@ -390,7 +391,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 _selectedSports.clear();
                 _selectedSports.addAll(SportUtils.availableSports);
               }
-              _showSearchButton = true;
+
+              _syncMarkers();
             });
           },
           child: Container(
@@ -432,8 +434,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 } else {
                   _selectedSports.addAll(relatedSports);
                 }
-                _showSearchButton = true;
               });
+
+              _syncMarkers();
             },
             child: Container(
               width: 200,
@@ -478,7 +481,12 @@ class _HomeScreenState extends State<HomeScreen> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: _selectedSports.isEmpty 
-            ? [Text(Translator.of('all_sports'), style: const TextStyle(color: Colors.white54, fontSize: 13))]
+            ? [Text(Translator.of('all_sports'), style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant, // Grigio scuro/leggibile
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  fontStyle: FontStyle.italic
+                ))]
             : _selectedSports.map((sport) {
                 return Container(
                   margin: const EdgeInsets.only(right: 6),
@@ -512,9 +520,8 @@ class _HomeScreenState extends State<HomeScreen> {
         currentLocale: widget.currentLocale,
       ),
       
-      // USIAMO IL GPS DELLO SCAFFOLD (È la soluzione più robusta per Android/iOS)
       floatingActionButton: FloatingActionButton(
-        heroTag: "gpsBtn", // Importante dare un tag unico
+        heroTag: "gpsBtn",
         onPressed: () => _initializeLocation(false),
         backgroundColor: Colors.white,
         elevation: 4,
@@ -561,8 +568,39 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // 3. ZONA RISULTATI
-          if (_sportCounts.isNotEmpty && !_showSearchButton)
+          // 3. TASTO REFRESH
+          Positioned(
+            top: 10,
+            right: 15,
+            child: SafeArea(
+              child: FloatingActionButton.small(
+                heroTag: "refreshSearchBtn",
+                backgroundColor: _showSearchButton 
+                    ? Theme.of(context).colorScheme.primary 
+                    : Colors.white,
+                onPressed: _isLoading ? null : _fetchMultiSportCourts,
+                child: _isLoading 
+                  ? SizedBox(
+                      width: 18, 
+                      height: 18, 
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2, 
+                        // Se il bottone è colorato, spinner bianco. Se è bianco, spinner colorato.
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          _showSearchButton ? Colors.white : Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    )
+                  : Icon(
+                      Icons.refresh, 
+                      color: _showSearchButton ? Colors.white : Theme.of(context).colorScheme.primary,
+                    ),
+              ),
+            ),
+          ),
+
+          // 4. ZONA RISULTATI
+          if (_sportCounts.isNotEmpty)
             Align(
               alignment: Alignment.bottomCenter,
               child: SafeArea(
@@ -588,28 +626,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         backgroundColor: Theme.of(context).colorScheme.primary,
                         foregroundColor: Colors.white,
                         icon: const Icon(Icons.format_list_bulleted),
-                        label: Text("${Translator.of('see_results')} (${_courts.length})"),
+                        label: Text("${Translator.of('see_results')} (${_displayedMarkers.length})"),
                         onPressed: _openFieldsList,
                       ),
                     ],
                   ),
                 ),
               ),
-            ),
-
-          // 4. OVERLAYS (Ricerca e Caricamento)
-          if (_isLoading) const Center(child: CircularProgressIndicator()),
-          
-          if (_showSearchButton)
-            Align(
-              alignment: Alignment.topCenter,
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 10), // Distanza dalla AppBar
-                  child: SearchButton(onPressed: _fetchMultiSportCourts),
-                ),
-              ),
-          ),
+            ),    
         ],
       ),
     );

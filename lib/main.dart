@@ -133,15 +133,21 @@ class _MyAppState extends State<MyApp> {
         useMaterial3: true,
         brightness: Brightness.light,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF2E7D32),
+          seedColor: const Color(0xFF00C853),
+          primary: const Color(0xFF00C853),
+          secondary: const Color(0xFF263238),
+          surface: const Color(0xFFF8FAF8),
           brightness: Brightness.light,
-          primary: const Color(0xFF2E7D32),
-          surface: Colors.white,
         ),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF2E7D32), 
+          backgroundColor: Color(0xFF00C853), 
           foregroundColor: Colors.white,
+          centerTitle: true,
           elevation: 2,
+        ),
+        floatingActionButtonTheme: const FloatingActionButtonThemeData(
+          backgroundColor: Color(0xFF00C853),
+          foregroundColor: Colors.white,
         ),
       ),
 
@@ -150,12 +156,13 @@ class _MyAppState extends State<MyApp> {
         useMaterial3: true,
         brightness: Brightness.dark,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF81C784),
+          seedColor: const Color(0xFF00C853),
+          surface: const Color(0xFF0A0C0A),
+          primary: const Color(0xFF00E676),
           brightness: Brightness.dark,
-          surface: const Color(0xFF1A1C19),
         ),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF212121),
+          backgroundColor: Color(0xFF121412),
           foregroundColor: Colors.white,
           elevation: 0,
         ),

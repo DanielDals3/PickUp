@@ -72,24 +72,45 @@ class MainDrawer extends StatelessWidget {
 
           const Divider(height: 1),
 
-          // FOOTER (Sito Web / Credits)
-          InkWell(
-            onTap: () => AppUtils.launchURL("https://consultits.it"),
-            child: const Padding(
-              padding: EdgeInsets.all(16.0),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20.0),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text("Developed by", style: TextStyle(color: Colors.grey, fontSize: 12)),
-                  SizedBox(height: 4),
+                  Text(
+                    "Developed by", 
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5), 
+                      fontSize: 10,
+                      letterSpacing: 0.5,
+                    )
+                  ),
+                  const SizedBox(height: 4),
                   Text(
                     "CONSULTITS",
-                    style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2, color: Colors.blueGrey),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800, 
+                      letterSpacing: 2.5, 
+                      fontSize: 13,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    "v 1.0.0",
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
             ),
           ),
-        ],
+        ], // Fine della Column del Drawer
       ),
     );
   }

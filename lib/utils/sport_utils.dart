@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pickup/services/translator_service.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class SportUtils {
   static List<String> get availableSports => _availableSports;
@@ -14,41 +15,40 @@ class SportUtils {
   static IconData getIconData(String sport) {
     switch (sport.trim().toLowerCase()) {
       case 'unknown':
-        return Icons.device_unknown;
+        return FontAwesomeIcons.question;
       case 'basketball':
-        return Icons.sports_basketball;
+        return FontAwesomeIcons.basketball;
       case 'soccer':
       case 'football':
-        return Icons.sports_soccer;
+        return FontAwesomeIcons.futbol;
       case 'tennis':
         return Icons.sports_tennis;
       case 'volleyball':
       case 'volley':
-        return Icons.sports_volleyball;
       case 'beachvolleyball':
-        return Icons.sports_volleyball;
+        return FontAwesomeIcons.volleyball;
       case 'fitness':
       case 'gym':
-        return Icons.fitness_center;
+        return FontAwesomeIcons.dumbbell;
       case 'climbing':
-        return Icons.terrain;
+        return FontAwesomeIcons.mountain;
       case 'swimming':
-        return Icons.pool;
+        return FontAwesomeIcons.personSwimming;
       case 'yoga':
-        return Icons.self_improvement;
+        return FontAwesomeIcons.spa;
       case 'gymnastics':
-        return Icons.sports_gymnastics;
+        return FontAwesomeIcons.childReaching;
       case 'cycling':
-        return Icons.directions_bike;
+        return FontAwesomeIcons.bicycle;
       case 'running':
-        return Icons.directions_run;
+        return FontAwesomeIcons.personRunning;
       case 'table_tennis':
-        return Icons.table_restaurant;
+        return FontAwesomeIcons.tableTennisPaddleBall;
       case 'skiing':
-        return Icons.downhill_skiing;
+        return FontAwesomeIcons.personSkiing;
       case 'snowboarding':
       case 'snowboard':
-        return Icons.snowboarding;
+        return FontAwesomeIcons.personSnowboarding;
       case 'padel':
         return Icons.sports_tennis;
       case 'rugby_union':
@@ -56,28 +56,28 @@ class SportUtils {
       case 'rugby_league':
         return Icons.sports_rugby;
       case 'american_football':
-        return Icons.sports_football;
+        return FontAwesomeIcons.football;
       case 'baseball':
       case 'softball':
-        return Icons.sports_baseball;
+        return FontAwesomeIcons.baseball;
       case 'skateboard':
       case 'skateboarding':
         return Icons.skateboarding;
       case 'golf':
-        return Icons.sports_golf;
+        return FontAwesomeIcons.golfBallTee;
       case 'martial_arts':
       case 'karate':
       case 'judo':
         return Icons.sports_martial_arts;
       case 'equestrian':
       case 'horse_riding':
-        return Icons.cruelty_free;
+        return FontAwesomeIcons.horse;
       case 'hockey':
       case 'ice_hockey':
-        return Icons.sports_hockey;
+        return FontAwesomeIcons.hockeyPuck;
       case 'boules':
       case 'bocce':
-        return Icons.circle;
+        return FontAwesomeIcons.circle;
       case 'boxing':
         return Icons.sports_mma;
       case 'calisthenics':
@@ -85,7 +85,7 @@ class SportUtils {
       case 'roller_hockey':
         return Icons.roller_skating;
       default:
-        return Icons.sports; 
+        return FontAwesomeIcons.medal; 
     }
   }
 
@@ -151,6 +151,7 @@ class SportUtils {
       case 'horse_riding':
         return Colors.brown[400]!;
       case 'hockey':
+        return Colors.grey;
       case 'ice_hockey':
         return Colors.blueAccent;
       case 'boules':
