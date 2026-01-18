@@ -1,7 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:pickup/screens/settings_dialog.dart';
+import 'package:pickup/services/translator_service.dart';
 
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+  final String currentLang;
+  final ThemeMode currentThemeMode;
+  final String currentNav;
+  final Function(String) onLangChanged;
+  final Function(ThemeMode) onThemeChanged;
+  final Function(String) onNavChanged;
+  final VoidCallback onClearCache;
+
+  const ProfileScreen({
+    super.key,
+    required this.currentLang,
+    required this.currentThemeMode,
+    required this.currentNav,
+    required this.onLangChanged,
+    required this.onThemeChanged,
+    required this.onNavChanged,
+    required this.onClearCache,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -13,11 +32,32 @@ class ProfileScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start, // Allinea il titolo a sinistra
             children: [
               // 1. TITOLO GRANDE
-              const Padding(
-                padding: EdgeInsets.fromLTRB(16, 20, 16, 10),
-                child: Text(
-                  "Profilo",
-                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 20, 8, 10), // Ridotto padding destro per l'icona
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      Translator.of('profile'), // Usa il tuo Translator anche qui!
+                      style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.settings_outlined, size: 28),
+                      onPressed: () {
+                        // Qui richiami il tuo SettingsDialog
+                        SettingsDialog.show(
+                          context,
+                          currentThemeMode: currentThemeMode,
+                          currentNav: currentNav,
+                          currentLang: currentLang,
+                          onThemeChanged: onThemeChanged,
+                          onNavChanged: onNavChanged,
+                          onLangChanged: onLangChanged,
+                          onClearCache: onClearCache,
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ),
 

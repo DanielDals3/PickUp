@@ -72,7 +72,15 @@ class Translator {
       'theme_light': 'Chiaro',
       'theme_dark': 'Scuro',
       'theme' : 'Tema',
-      'see_results': 'Vedi risultati'
+      'see_results': 'Vedi risultati',
+      'map_settings': 'Impostazioni mappa',
+      'filter_per_sport': 'Filtra per sport',
+      'reset_filters': 'Reimposta filtri',
+      'satellite_view' : 'Vista satellitare',
+      'my_location': 'La mia posizione',
+      'profile': 'Profilo',
+      'save': 'Salva',
+      'close': 'Chiudi',
     },
     'en': {
       'system_language': 'System',
@@ -145,7 +153,15 @@ class Translator {
       'theme_light': 'Light',
       'theme_dark': 'Dark',
       'theme' : 'Theme',
-      'see_results': 'See results'
+      'see_results': 'See results',
+      'map_settings': 'Map settings',
+      'filter_per_sport': 'Filter by sport',
+      'reset_filters': 'Reset filters',
+      'satellite_view' : 'Satellite view',
+      'my_location': 'My location',
+      'profile': 'Profile',
+      'save': 'Save',
+      'close': 'Close',
     }
   };
 
