@@ -3,7 +3,7 @@ import 'package:pickup/models/sport_court.dart';
 import 'package:pickup/pages/login_page.dart';
 import '../utils/app_utils.dart';
 import '../utils/sport_utils.dart';
-import '../services/translator.dart';
+import '../services/translator_service.dart';
 
 class CourtDetailsSheet extends StatelessWidget {
   final SportCourt court;

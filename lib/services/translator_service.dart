@@ -1,8 +1,8 @@
 class Translator {
-  static String currentLanguage = 'it';
 
   static const Map<String, Map<String, String>> _data = {
     'it': {
+      'system_language': 'Sistema',
       'app_title': 'PickUp',
       'search_here': 'Cerca in questa zona',
       'language': 'Lingua',
@@ -68,8 +68,22 @@ class Translator {
       'calisthenics': 'Calisthenics',
       'snowboard': 'Snowboard',
       'roller_hockey': 'Hockey su rotelle',
+      'theme_system': 'Automatico',
+      'theme_light': 'Chiaro',
+      'theme_dark': 'Scuro',
+      'theme' : 'Tema',
+      'see_results': 'Vedi risultati',
+      'map_settings': 'Impostazioni mappa',
+      'filter_per_sport': 'Filtra per sport',
+      'reset_filters': 'Reimposta filtri',
+      'satellite_view' : 'Vista satellitare',
+      'my_location': 'La mia posizione',
+      'profile': 'Profilo',
+      'save': 'Salva',
+      'close': 'Chiudi',
     },
     'en': {
+      'system_language': 'System',
       'app_title': 'PickUp',
       'search_here': 'Search in this area',
       'language': 'Language',
@@ -135,10 +149,32 @@ class Translator {
       'calisthenics': 'Calisthenics',
       'snowboard': 'Snowboard',
       'roller_hockey': 'Roller Hockey',
+      'theme_system': 'System',
+      'theme_light': 'Light',
+      'theme_dark': 'Dark',
+      'theme' : 'Theme',
+      'see_results': 'See results',
+      'map_settings': 'Map settings',
+      'filter_per_sport': 'Filter by sport',
+      'reset_filters': 'Reset filters',
+      'satellite_view' : 'Satellite view',
+      'my_location': 'My location',
+      'profile': 'Profile',
+      'save': 'Save',
+      'close': 'Close',
     }
   };
 
-  static String of(String key) {
-    return _data[currentLanguage]?[key.toLowerCase()] ?? key;
+  static String of(String key, {String? overrideLang}) {
+    // 1. Se forziamo una lingua (es. durante il caricamento), usa quella
+    // 2. Altrimenti usa currentLanguage (che aggiorneremo dal MaterialApp)
+    // 3. Fallback su 'it'
+    String lang = overrideLang ?? currentLanguage;
+    
+    return _data[lang]?[key.toLowerCase()] ?? 
+           _data['it']?[key.toLowerCase()] ?? // Fallback su italiano se manca in EN
+           key;
   }
+
+  static String currentLanguage = 'it';
 }
