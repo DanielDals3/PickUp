@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pickup/pages/login_page.dart';
 import '../services/translator.dart';
 import '../utils/app_utils.dart';
 
@@ -81,10 +82,13 @@ class MainDrawer extends StatelessWidget {
                 elevation: 2,
               ),
               onPressed: () {
-                // Per ora simuliamo solo il click
-                print("Login premuto!");
                 // Chiudi il drawer dopo il click
                 Navigator.pop(context);
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                );
               },
               icon: const Icon(Icons.login),
               label: const Text(

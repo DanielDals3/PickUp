@@ -38,15 +38,52 @@ class _HomeScreenState extends State<HomeScreen> {
   List<SportCourt> _courts = [];
   bool _isLoading = false;
   bool _showSearchButton = false;
-  
+
   LatLng _currentMapCenter = const LatLng(45.4642, 9.1900); // Milano default
 
-  final List<String> _availableSports = ['basketball', 'soccer', 'tennis', 'volleyball', 'beachvolleyball',
-    'fitness', 'climbing', 'swimming', 'yoga', 'gymnastics', 'cycling', 'running', 'table_tennis', 'skiing', 
-     'padel', 'gym', 'football', 'snowboarding', 'rugby_union', 'rugby', 'rugby_league', 'american_football',
-     'baseball', 'softball', 'skateboard', 'skateboarding', 'golf', 'martial_arts', 'karate', 'judo', 'equestrian',
-     'horse_riding', 'hockey', 'ice_hockey', 'boules', 'bocce', 'volley', 'boxing', 'calisthenics','snowboard',
-     'roller_hockey' ];
+  final List<String> _availableSports = [
+    'basketball',
+    'soccer',
+    'tennis',
+    'volleyball',
+    'beachvolleyball',
+    'fitness',
+    'climbing',
+    'swimming',
+    'yoga',
+    'gymnastics',
+    'cycling',
+    'running',
+    'table_tennis',
+    'skiing',
+    'padel',
+    'gym',
+    'football',
+    'snowboarding',
+    'rugby_union',
+    'rugby',
+    'rugby_league',
+    'american_football',
+    'baseball',
+    'softball',
+    'skateboard',
+    'skateboarding',
+    'golf',
+    'martial_arts',
+    'karate',
+    'judo',
+    'equestrian',
+    'horse_riding',
+    'hockey',
+    'ice_hockey',
+    'boules',
+    'bocce',
+    'volley',
+    'boxing',
+    'calisthenics',
+    'snowboard',
+    'roller_hockey',
+  ];
   final List<String> _selectedSports = [];
 
   @override
@@ -76,7 +113,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Marker> get _displayedMarkers {
     // 1. Filtriamo i dati
     final filteredCourts = _courts.where((court) {
-    if (_selectedSports.isEmpty) return true;
+      if (_selectedSports.isEmpty) return true;
       // Controlla se almeno uno degli sport del campo è tra quelli selezionati
       return court.sports.any((sport) => _selectedSports.contains(sport));
     }).toList();
@@ -89,10 +126,8 @@ class _HomeScreenState extends State<HomeScreen> {
         width: 40,
         height: 40,
         child: GestureDetector(
-          onTap: () => _showCourtDetails(
-            court
-          ),
-          child: _getMarkerIcon(court.sports.join(';')), 
+          onTap: () => _showCourtDetails(court),
+          child: _getMarkerIcon(court.sports.join(';')),
         ),
       );
     }).toList();
@@ -132,11 +167,11 @@ class _HomeScreenState extends State<HomeScreen> {
       _currentMapCenter = target;
       _isLoading = false;
     });
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _mapController.move(target, 14.5);
-        });
-    
+    });
+
     // Delay per i visibleBounds
     Future.delayed(const Duration(milliseconds: 600), () {
       if (isInitial) {
@@ -148,7 +183,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _fetchMultiSportCourts() async {
-    if (!mounted) return; 
+    if (!mounted) return;
 
     // Otteniamo i confini della mappa
     final bounds = _mapController.camera.visibleBounds;
@@ -161,16 +196,17 @@ class _HomeScreenState extends State<HomeScreen> {
       _courts = [];
     });
 
-    String sportsQuery = _selectedSports.isEmpty 
-        ? _availableSports.join('|') 
+    String sportsQuery = _selectedSports.isEmpty
+        ? _availableSports.join('|')
         : _selectedSports.join('|');
 
     // Query che cerca diversi tipi di sport contemporaneamente
-    final url = 'https://overpass-api.de/api/interpreter?data=[out:json];nw["sport"~"$sportsQuery"](${bounds.south},${bounds.west},${bounds.north},${bounds.east});out center;';
+    final url =
+        'https://overpass-api.de/api/interpreter?data=[out:json];nw["sport"~"$sportsQuery"](${bounds.south},${bounds.west},${bounds.north},${bounds.east});out center;';
 
     try {
       final response = await ApiService.fetchOverpassData(url);
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         // List<Marker> newMarkers = [];
@@ -181,9 +217,9 @@ class _HomeScreenState extends State<HomeScreen> {
           _courts = (data['elements'] as List)
               .map((e) => SportCourt.fromOSM(e))
               .toList();
-              
+
           _showSearchButton = false;
-        }); 
+        });
       }
 
       setState(() {
@@ -192,8 +228,7 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     } catch (e) {
       setState(() => _isLoading = false);
-    }
-    finally {
+    } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -209,31 +244,36 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showCourtDetails(SportCourt court) {    
+  void _showCourtDetails(SportCourt court) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent, // Importante per i bordi arrotondati del Container interno
+      backgroundColor: Colors
+          .transparent, // Importante per i bordi arrotondati del Container interno
       builder: (context) => CourtDetailsSheet(
         court: court,
         preferredNav: widget.currentNav,
-        availableSports: _availableSports, // Variabile di stato della HomeScreen
+        availableSports:
+            _availableSports, // Variabile di stato della HomeScreen
+        isLoggedIn: const bool.fromEnvironment(
+          'USER_LOGGED_IN',
+          defaultValue: false,
+        ), // Simulazione dello stato di login
       ),
     );
   }
 
   Widget _getMarkerIcon(String? sportTag) {
-
     // 1. Dividiamo la stringa e puliamo i testi
     List<String> rawSports = (sportTag?.split(';') ?? ['unknown'])
-      .map((s) => s.trim().toLowerCase())
-      .where((s) => s.isNotEmpty)
-      .toList();
+        .map((s) => s.trim().toLowerCase())
+        .where((s) => s.isNotEmpty)
+        .toList();
 
     // 2. CREIAMO UNA LISTA DI SPORT UNICI BASATA SULL'ICONA
     // Usiamo una mappa per tenere solo uno sport per ogni tipo di icona
     Map<IconData, String> uniqueIconsMap = {};
-    
+
     for (var sport in rawSports) {
       if (!_availableSports.contains(sport)) {
         // Filtra solo sport gestiti
@@ -253,7 +293,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (sports.length > 1) {
       // Prendiamo i primi 4
       final displayedSports = sports.take(4).toList();
-      
+
       return Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -272,7 +312,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   SportUtils.buildMiniIcon(displayedSports[0]),
-                  if (displayedSports.length >= 2) SportUtils.buildMiniIcon(displayedSports[1]),
+                  if (displayedSports.length >= 2)
+                    SportUtils.buildMiniIcon(displayedSports[1]),
                 ],
               ),
               if (displayedSports.length > 2)
@@ -280,11 +321,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     SportUtils.buildMiniIcon(displayedSports[2]),
-                    if (displayedSports.length == 4) SportUtils.buildMiniIcon(displayedSports[3]),
+                    if (displayedSports.length == 4)
+                      SportUtils.buildMiniIcon(displayedSports[3]),
                   ],
                 ),
             ],
-            ),
+          ),
         ),
       );
     }
@@ -299,7 +341,11 @@ class _HomeScreenState extends State<HomeScreen> {
         boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
       ),
       padding: const EdgeInsets.all(4),
-      child: Icon(SportUtils.getIconData(sport), color: SportUtils.getIconColor(sport), size: 28),
+      child: Icon(
+        SportUtils.getIconData(sport),
+        color: SportUtils.getIconColor(sport),
+        size: 28,
+      ),
     );
   }
 
@@ -322,12 +368,21 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surfaceContainer,
-            border: Border(top: BorderSide(color: Theme.of(context).dividerColor, width: 0.5)),
+            border: Border(
+              top: BorderSide(
+                color: Theme.of(context).dividerColor,
+                width: 0.5,
+              ),
+            ),
           ),
           child: Row(
             children: [
               _buildSportsMenu(), // Il pulsante con il MenuAnchor
-              const VerticalDivider(color: Colors.white24, indent: 10, endIndent: 10),
+              const VerticalDivider(
+                color: Colors.white24,
+                indent: 10,
+                endIndent: 10,
+              ),
               _buildSelectedSportsBar(), // La riga scorrevole degli sport selezionati
             ],
           ),
@@ -359,7 +414,10 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(width: 8),
               Text(
                 Translator.of('sports'),
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const Icon(Icons.arrow_drop_down, color: Colors.white),
             ],
@@ -387,13 +445,17 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Row(
               children: [
                 Icon(
-                  allSelected ? Icons.indeterminate_check_box : Icons.select_all,
+                  allSelected
+                      ? Icons.indeterminate_check_box
+                      : Icons.select_all,
                   color: Theme.of(context).colorScheme.primary,
                   size: 22,
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  allSelected ? Translator.of('deselect_all') : Translator.of('select_all'),
+                  allSelected
+                      ? Translator.of('deselect_all')
+                      : Translator.of('select_all'),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).colorScheme.primary,
@@ -408,13 +470,17 @@ class _HomeScreenState extends State<HomeScreen> {
         // --- LISTA DEGLI SPORT ---
         ..._uniqueSports.map((sport) {
           final label = Translator.of(sport);
-          final isSelected = _selectedSports.any((s) => Translator.of(s) == label);
+          final isSelected = _selectedSports.any(
+            (s) => Translator.of(s) == label,
+          );
 
           return MenuItemButton(
             closeOnActivate: false,
             onPressed: () {
               setState(() {
-                final relatedSports = _availableSports.where((s) => Translator.of(s) == label).toList();
+                final relatedSports = _availableSports
+                    .where((s) => Translator.of(s) == label)
+                    .toList();
                 if (isSelected) {
                   _selectedSports.removeWhere((s) => relatedSports.contains(s));
                 } else {
@@ -429,8 +495,12 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Row(
                 children: [
                   Icon(
-                    isSelected ? Icons.check_box : Icons.check_box_outline_blank,
-                    color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey,
+                    isSelected
+                        ? Icons.check_box
+                        : Icons.check_box_outline_blank,
+                    color: isSelected
+                        ? Theme.of(context).colorScheme.primary
+                        : Colors.grey,
                     size: 22,
                   ),
                   const SizedBox(width: 12),
@@ -444,10 +514,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Text(
                       label,
                       style: TextStyle(
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                        color: isSelected ? Theme.of(context).colorScheme.primary : null,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        color: isSelected
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
                       ),
-                      overflow: TextOverflow.ellipsis, // Aggiunge i puntini (...) se troppo lungo
+                      overflow: TextOverflow
+                          .ellipsis, // Aggiunge i puntini (...) se troppo lungo
                       maxLines: 1,
                     ),
                   ),
@@ -465,26 +540,50 @@ class _HomeScreenState extends State<HomeScreen> {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
-          children: _selectedSports.isEmpty 
-            ? [Text(Translator.of('all_sports'), style: const TextStyle(color: Colors.white54, fontSize: 13))]
-            : _selectedSports.map((sport) {
-                return Container(
-                  margin: const EdgeInsets.only(right: 6),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: SportUtils.getIconColor(sport).withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: SportUtils.getIconColor(sport).withValues(alpha: 0.5))
+          children: _selectedSports.isEmpty
+              ? [
+                  Text(
+                    Translator.of('all_sports'),
+                    style: const TextStyle(color: Colors.white54, fontSize: 13),
                   ),
-                  child: Row(
-                    children: [
-                      Icon(SportUtils.getIconData(sport), size: 12, color: SportUtils.getIconColor(sport)),
-                      const SizedBox(width: 4),
-                      Text(Translator.of(sport), style: const TextStyle(color: Colors.white, fontSize: 11)),
-                    ],
-                  ),
-                );
-              }).toList(),
+                ]
+              : _selectedSports.map((sport) {
+                  return Container(
+                    margin: const EdgeInsets.only(right: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: SportUtils.getIconColor(
+                        sport,
+                      ).withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: SportUtils.getIconColor(
+                          sport,
+                        ).withValues(alpha: 0.5),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          SportUtils.getIconData(sport),
+                          size: 12,
+                          color: SportUtils.getIconColor(sport),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          Translator.of(sport),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
         ),
       ),
     );
@@ -518,7 +617,7 @@ class _HomeScreenState extends State<HomeScreen> {
               }
             },
           ),
-          
+
           if (_sportCounts.isNotEmpty && !_showSearchButton)
             Positioned(
               bottom: 20,
@@ -535,7 +634,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
 
           if (_isLoading) const Center(child: CircularProgressIndicator()),
-          
+
           if (_showSearchButton)
             SearchButton(onPressed: _fetchMultiSportCourts),
         ],
@@ -545,8 +644,8 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.white,
         elevation: 4,
         child: Icon(
-          Icons.my_location, 
-          color: Theme.of(context).colorScheme.primary
+          Icons.my_location,
+          color: Theme.of(context).colorScheme.primary,
         ),
       ),
     );

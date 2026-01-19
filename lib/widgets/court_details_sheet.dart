@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pickup/models/sport_court.dart';
+import 'package:pickup/pages/login_page.dart';
 import '../utils/app_utils.dart';
 import '../utils/sport_utils.dart';
 import '../services/translator.dart';
@@ -8,19 +9,25 @@ class CourtDetailsSheet extends StatelessWidget {
   final SportCourt court;
   final String preferredNav;
   final List<String> availableSports;
+  final bool isLoggedIn; // capire se l'utente è loggato o no, capire come fare
 
   const CourtDetailsSheet({
     super.key,
     required this.court,
     required this.preferredNav,
     required this.availableSports,
+    this.isLoggedIn = false,
   });
 
   @override
   Widget build(BuildContext context) {
     // Estrazione dati opzionali
     final tags = court.rawTags;
-    String? website = tags['website'] ?? tags['contact:website'] ?? tags['facebook'] ?? tags['url'];
+    String? website =
+        tags['website'] ??
+        tags['contact:website'] ??
+        tags['facebook'] ??
+        tags['url'];
     String? phone = tags['phone'] ?? tags['contact:phone'];
     String address = AppUtils.formatAddress(tags);
 
@@ -34,9 +41,9 @@ class CourtDetailsSheet extends StatelessWidget {
       ),
       child: Padding(
         padding: EdgeInsets.only(
-          left: 24, 
-          right: 24, 
-          top: 12, 
+          left: 24,
+          right: 24,
+          top: 12,
           bottom: 32 + MediaQuery.of(context).viewInsets.bottom,
         ),
         child: Column(
@@ -50,39 +57,63 @@ class CourtDetailsSheet extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      court.name == "unknown" ? Translator.of("unknown") : court.name, 
-                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)
+                      court.name == "unknown"
+                          ? Translator.of("unknown")
+                          : court.name,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const Divider(height: 20),
-                    
+
                     // SEZIONE SPORT
                     _buildSportGrid(context),
-                    
+
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 15),
                       child: Divider(),
                     ),
 
                     // DETTAGLI PRINCIPALI (con la tua logica Text.rich)
-                    _buildDetailRow(Icons.location_on, Translator.of('address'), address, context),
                     _buildDetailRow(
-                      Icons.layers, 
-                      Translator.of('surface'), 
-                      tags['surface'] ?? Translator.of('not_specified'), 
-                      context
+                      Icons.location_on,
+                      Translator.of('address'),
+                      address,
+                      context,
+                    ),
+                    _buildDetailRow(
+                      Icons.layers,
+                      Translator.of('surface'),
+                      tags['surface'] ?? Translator.of('not_specified'),
+                      context,
                     ),
 
                     // LINK ESTERNI
-                    if (website != null) 
-                      _buildLinkRow(Icons.language, Translator.of('website'), website, Colors.blueAccent, context),
-                    if (phone != null) 
-                      _buildLinkRow(Icons.phone, Translator.of('phone'), phone, Colors.green, context, isPhone: true),
+                    if (website != null)
+                      _buildLinkRow(
+                        Icons.language,
+                        Translator.of('website'),
+                        website,
+                        Colors.blueAccent,
+                        context,
+                      ),
+                    if (phone != null)
+                      _buildLinkRow(
+                        Icons.phone,
+                        Translator.of('phone'),
+                        phone,
+                        Colors.green,
+                        context,
+                        isPhone: true,
+                      ),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 20),
-            _buildNavigationButton(context),
+            // _buildNavigationButton(context),
+            _buildActionButtons(context),
           ],
         ),
       ),
@@ -93,12 +124,12 @@ class CourtDetailsSheet extends StatelessWidget {
 
   Widget _buildHandle() => Center(
     child: Container(
-      width: 40, 
-      height: 4, 
+      width: 40,
+      height: 4,
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
-        color: Colors.grey[300], 
-        borderRadius: BorderRadius.circular(10)
+        color: Colors.grey[300],
+        borderRadius: BorderRadius.circular(10),
       ),
     ),
   );
@@ -107,37 +138,52 @@ class CourtDetailsSheet extends StatelessWidget {
     final counts = court.sportCounts;
 
     return Wrap(
-      spacing: 8, 
+      spacing: 8,
       runSpacing: 8,
-      children: counts.entries.where((e) => availableSports.contains(e.key)).map((e) {
-        final color = SportUtils.getIconColor(e.key);
-        return IntrinsicWidth(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: color.withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(SportUtils.getIconData(e.key), size: 16, color: color),
-                const SizedBox(width: 8),
-                Text(
-                  "${Translator.of(e.key)}: ${e.value}",
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color),
+      children: counts.entries
+          .where((e) => availableSports.contains(e.key))
+          .map((e) {
+            final color = SportUtils.getIconColor(e.key);
+            return IntrinsicWidth(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
                 ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: color.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(SportUtils.getIconData(e.key), size: 16, color: color),
+                    const SizedBox(width: 8),
+                    Text(
+                      "${Translator.of(e.key)}: ${e.value}",
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          })
+          .toList(),
     );
   }
 
   // La tua funzione preferita con Text.rich migliorata
-  Widget _buildDetailRow(IconData icon, String label, String value, BuildContext context) {
+  Widget _buildDetailRow(
+    IconData icon,
+    String label,
+    String value,
+    BuildContext context,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
@@ -149,13 +195,13 @@ class CourtDetailsSheet extends StatelessWidget {
             child: Text.rich(
               TextSpan(
                 style: TextStyle(
-                  fontSize: 15, 
-                  color: Theme.of(context).textTheme.bodyMedium?.color
+                  fontSize: 15,
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
                 ),
                 children: [
                   TextSpan(
-                    text: "$label: ", 
-                    style: const TextStyle(fontWeight: FontWeight.bold)
+                    text: "$label: ",
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   TextSpan(text: value),
                 ],
@@ -168,12 +214,21 @@ class CourtDetailsSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildLinkRow(IconData icon, String label, String value, Color iconColor, BuildContext context, {bool isPhone = false}) {
+  Widget _buildLinkRow(
+    IconData icon,
+    String label,
+    String value,
+    Color iconColor,
+    BuildContext context, {
+    bool isPhone = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: InkWell(
-        onTap: () => isPhone 
-            ? AppUtils.launchURL("tel:${value.replaceAll(RegExp(r'[^0-9+]'), '')}") 
+        onTap: () => isPhone
+            ? AppUtils.launchURL(
+                "tel:${value.replaceAll(RegExp(r'[^0-9+]'), '')}",
+              )
             : AppUtils.launchURL(value),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -185,7 +240,10 @@ class CourtDetailsSheet extends StatelessWidget {
                 TextSpan(
                   style: const TextStyle(fontSize: 15),
                   children: [
-                    TextSpan(text: "$label: ", style: const TextStyle(fontWeight: FontWeight.bold)),
+                    TextSpan(
+                      text: "$label: ",
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     TextSpan(
                       text: value,
                       style: const TextStyle(
@@ -211,11 +269,103 @@ class CourtDetailsSheet extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       elevation: 0,
     ),
-    onPressed: () => AppUtils.openMap(court.position.latitude, court.position.longitude, preferredNav),
+    onPressed: () => AppUtils.openMap(
+      court.position.latitude,
+      court.position.longitude,
+      preferredNav,
+    ),
     icon: const Icon(Icons.directions, color: Colors.white),
     label: Text(
-      Translator.of('take_me_here'), 
-      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)
+      Translator.of('take_me_here'),
+      style: const TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.bold,
+        fontSize: 16,
+      ),
     ),
   );
+
+  Widget _buildActionButtons(BuildContext context) {
+    return Row(
+      children: [
+        // BOX 1: PORTAMI QUI
+        Expanded(
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              minimumSize: const Size(0, 55), // Larghezza gestita da Expanded
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              elevation: 0,
+            ),
+            onPressed: () => AppUtils.openMap(
+              court.position.latitude,
+              court.position.longitude,
+              preferredNav,
+            ),
+            icon: const Icon(Icons.directions, color: Colors.white, size: 20),
+            label: Text(
+              Translator.of('take_me_here'),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ),
+
+        const SizedBox(width: 12), // Spazio tra i due bottoni
+        // BOX 2: DISPONIBILITÀ / PRENOTA
+        Expanded(
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              // Se non è loggato, usiamo un colore diverso o grigio
+              backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+              minimumSize: const Size(0, 55),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              elevation: 0,
+            ),
+            onPressed: () {
+              if (isLoggedIn) {
+                print("Apertura calendario disponibilità per: ${court.name}");
+                // Qui aprirai la pagina della prenotazione
+              } else {
+                // 1. Chiudiamo la scheda dei dettagli (il bottom sheet)
+                Navigator.pop(context);
+
+                // 2. Apriamo la pagina di Login che abbiamo creato prima
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                );
+              }
+            },
+            icon: Icon(
+              isLoggedIn ? Icons.event_available : Icons.lock_outline,
+              color: isLoggedIn
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.grey[600],
+              size: 20,
+            ),
+            label: Text(
+              isLoggedIn ? "PRENOTA" : "PRENOTA",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: isLoggedIn
+                    ? Theme.of(context).colorScheme.primary
+                    : Colors.grey[600],
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
