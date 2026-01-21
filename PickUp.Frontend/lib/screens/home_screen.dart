@@ -55,7 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<String> _selectedSports = [];
   List<Marker> _displayedMarkers = [];
-  Map<String, int> _sportCounts = {}; 
+  Map<String, int> _sportCounts = {};
 
   @override
   void initState() {
@@ -67,52 +67,52 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // --- AZIONI ---
-  void _syncMarkers(){
+  void _syncMarkers() {
     setState(() {
-        // 1. Filtriamo i dati
-        final filteredCourts = _courts.where((court) {
-          if (_selectedSports.isEmpty) return true;
-            // Controlla se almeno uno degli sport del campo è tra quelli selezionati
-            return court.sports.any((sport) => _selectedSports.contains(sport));
-        }).toList();
+      // 1. Filtriamo i dati
+      final filteredCourts = _courts.where((court) {
+        if (_selectedSports.isEmpty) return true;
+        // Controlla se almeno uno degli sport del campo è tra quelli selezionati
+        return court.sports.any((sport) => _selectedSports.contains(sport));
+      }).toList();
 
-        // 2. Trasformiamo in Marker e salviamo nella variabile di stato
-        _displayedMarkers = filteredCourts.map((court) {
-          return Marker(
-            key: ValueKey("marker_${court.id}"),
-            point: court.position,
-            width: 40,  
-            height: 40,
-            child: GestureDetector(
-              onTap: () => _showCourtDetails(court),
-              // Usiamo FaIcon qui dentro come abbiamo visto prima
-              child: _getMarkerIcon(court.sports.join(';')), 
-            ),
-          );
-        }).toList();
+      // 2. Trasformiamo in Marker e salviamo nella variabile di stato
+      _displayedMarkers = filteredCourts.map((court) {
+        return Marker(
+          key: ValueKey("marker_${court.id}"),
+          point: court.position,
+          width: 40,
+          height: 40,
+          child: GestureDetector(
+            onTap: () => _showCourtDetails(court),
+            // Usiamo FaIcon qui dentro come abbiamo visto prima
+            child: _getMarkerIcon(court.sports.join(';')),
+          ),
+        );
+      }).toList();
 
-        // 3. Calcoliamo i conteggi per gli sport mostrati
-        Map<String, int> counts = {};
-        for (var marker in _displayedMarkers) {
-          if (marker.key is ValueKey<String?>) {
-            final String? sportTag = (marker.key as ValueKey<String?>).value;
-            if (sportTag != null) {
-              final List<String> sports = sportTag.split('|').last.split(',');
-              for (var s in sports) {
-                final cleanSport = s.trim().toLowerCase();
-                counts[cleanSport] = (counts[cleanSport] ?? 0) + 1;
-              }
+      // 3. Calcoliamo i conteggi per gli sport mostrati
+      Map<String, int> counts = {};
+      for (var marker in _displayedMarkers) {
+        if (marker.key is ValueKey<String?>) {
+          final String? sportTag = (marker.key as ValueKey<String?>).value;
+          if (sportTag != null) {
+            final List<String> sports = sportTag.split('|').last.split(',');
+            for (var s in sports) {
+              final cleanSport = s.trim().toLowerCase();
+              counts[cleanSport] = (counts[cleanSport] ?? 0) + 1;
             }
           }
         }
-        _sportCounts = counts;
+      }
+      _sportCounts = counts;
     });
   }
 
   void _clearCacheAndMarkers() {
     setState(() {
       _courts.clear();
-      _courts = []; 
+      _courts = [];
     });
 
     _syncMarkers();
@@ -138,8 +138,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void _moveToLocation(final LatLng target, [bool isInitial = false]) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _mapController.move(target, 14.5);
-        });
-    
+    });
+
     // Delay per i visibleBounds
     Future.delayed(const Duration(milliseconds: 600), () {
       if (isInitial) {
@@ -149,7 +149,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _fetchMultiSportCourts() async {
-    if (!mounted) return; 
+    if (!mounted) return;
 
     // Otteniamo i confini della mappa
     final bounds = _mapController.camera.visibleBounds;
@@ -164,16 +164,17 @@ class _HomeScreenState extends State<HomeScreen> {
       _sportCounts = {};
     });
 
-    String sportsQuery = _selectedSports.isEmpty 
-        ? SportUtils.availableSports.join('|') 
+    String sportsQuery = _selectedSports.isEmpty
+        ? SportUtils.availableSports.join('|')
         : _selectedSports.join('|');
 
     // Query che cerca diversi tipi di sport contemporaneamente
-    final url = 'https://overpass-api.de/api/interpreter?data=[out:json];nw["sport"~"$sportsQuery"](${bounds.south},${bounds.west},${bounds.north},${bounds.east});out center;';
+    final url =
+        'https://overpass-api.de/api/interpreter?data=[out:json];nw["sport"~"$sportsQuery"](${bounds.south},${bounds.west},${bounds.north},${bounds.east});out center;';
 
     try {
       final response = await ApiService.fetchOverpassData(url);
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
 
@@ -183,8 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _courts = (data['elements'] as List)
               .map((e) => SportCourt.fromOSM(e))
               .toList();
-              
-        }); 
+        });
       }
 
       _syncMarkers();
@@ -194,21 +194,22 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     } catch (e) {
       setState(() => _isLoading = false);
-    }
-    finally {
+    } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  void _showCourtDetails(SportCourt court) {    
+  void _showCourtDetails(SportCourt court) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent, // Importante per i bordi arrotondati del Container interno
+      backgroundColor: Colors
+          .transparent, // Importante per i bordi arrotondati del Container interno
       builder: (context) => CourtDetailsSheet(
         court: court,
         preferredNav: widget.currentNav,
-        availableSports: SportUtils.availableSports, // Variabile di stato della HomeScreen
+        availableSports:
+            SportUtils.availableSports, // Variabile di stato della HomeScreen
       ),
     );
   }
@@ -227,7 +228,8 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context) => CourtListSheet(
         courts: sorted,
         currentPos: _currentMapCenter,
-        showDistance: _isGpsActive, // Mostra i km solo se non è il default di Milano
+        showDistance:
+            _isGpsActive, // Mostra i km solo se non è il default di Milano
         onCourtTap: (court) {
           Navigator.pop(context);
           _mapController.move(court.position, 17);
@@ -237,17 +239,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _getMarkerIcon(String? sportTag) {
-
     // 1. Dividiamo la stringa e puliamo i testi
     List<String> rawSports = (sportTag?.split(';') ?? ['unknown'])
-      .map((s) => s.trim().toLowerCase())
-      .where((s) => s.isNotEmpty)
-      .toList();
+        .map((s) => s.trim().toLowerCase())
+        .where((s) => s.isNotEmpty)
+        .toList();
 
     // 2. CREIAMO UNA LISTA DI SPORT UNICI BASATA SULL'ICONA
     // Usiamo una mappa per tenere solo uno sport per ogni tipo di icona
     Map<IconData, String> uniqueIconsMap = {};
-    
+
     for (var sport in rawSports) {
       if (!SportUtils.availableSports.contains(sport)) {
         // Filtra solo sport gestiti
@@ -267,7 +268,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (sports.length > 1) {
       // Prendiamo i primi 4
       final displayedSports = sports.take(4).toList();
-      
+
       return Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -286,7 +287,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   SportUtils.buildMiniIcon(displayedSports[0]),
-                  if (displayedSports.length >= 2) SportUtils.buildMiniIcon(displayedSports[1]),
+                  if (displayedSports.length >= 2)
+                    SportUtils.buildMiniIcon(displayedSports[1]),
                 ],
               ),
               if (displayedSports.length > 2)
@@ -294,11 +296,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     SportUtils.buildMiniIcon(displayedSports[2]),
-                    if (displayedSports.length == 4) SportUtils.buildMiniIcon(displayedSports[3]),
+                    if (displayedSports.length == 4)
+                      SportUtils.buildMiniIcon(displayedSports[3]),
                   ],
                 ),
             ],
-            ),
+          ),
         ),
       );
     }
@@ -313,12 +316,15 @@ class _HomeScreenState extends State<HomeScreen> {
         boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
       ),
       padding: const EdgeInsets.all(4),
-      child: Icon(SportUtils.getIconData(sport), color: SportUtils.getIconColor(sport), size: 28),
+      child: Icon(
+        SportUtils.getIconData(sport),
+        color: SportUtils.getIconColor(sport),
+        size: 28,
+      ),
     );
   }
 
   void _showMapSettings(BuildContext context) {
-    
     final primaryColor = Theme.of(context).colorScheme.primary;
 
     showModalBottomSheet(
@@ -335,26 +341,42 @@ class _HomeScreenState extends State<HomeScreen> {
           child: StatefulBuilder(
             builder: (context, setModalState) {
               return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 15),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 20,
+                  horizontal: 15,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: 10),
-                      child: Text(Translator.of('map_settings'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      child: Text(
+                        Translator.of('map_settings'),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
                     ),
 
                     const SizedBox(height: 15),
-                    
+
                     // SEZIONE SPORT
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(Translator.of('filter_per_sport'), 
-                            style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+                          Text(
+                            Translator.of('filter_per_sport'),
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.1,
+                            ),
+                          ),
                           if (_selectedSports.isNotEmpty)
                             GestureDetector(
                               onTap: () {
@@ -362,15 +384,21 @@ class _HomeScreenState extends State<HomeScreen> {
                                 setModalState(() {});
                                 _syncMarkers();
                               },
-                              child: Text(Translator.of('reset_filters'), 
-                                style: TextStyle(fontSize: 12, color: primaryColor, fontWeight: FontWeight.bold)),
+                              child: Text(
+                                Translator.of('reset_filters'),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: primaryColor,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                         ],
                       ),
                     ),
 
                     const SizedBox(height: 12),
-                  
+
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 5),
@@ -379,37 +407,52 @@ class _HomeScreenState extends State<HomeScreen> {
                           bool isSelected = _selectedSports.contains(sport);
                           String translatedName = Translator.of(sport);
                           Color sportColor = SportUtils.getIconColor(sport);
-                          
+
                           return Padding(
                             padding: const EdgeInsets.only(right: 8),
                             child: FilterChip(
                               label: Text(translatedName),
-                              avatar: Icon(SportUtils.getIconData(sport), 
-                                size: 16, 
-                                color: isSelected ? sportColor : Colors.grey),
+                              avatar: Icon(
+                                SportUtils.getIconData(sport),
+                                size: 16,
+                                color: isSelected ? sportColor : Colors.grey,
+                              ),
                               selected: isSelected,
                               onSelected: (bool selected) {
                                 setState(() {
                                   if (selected) {
-                                    _selectedSports.add(sport); // Aggiungi alla lista
+                                    _selectedSports.add(
+                                      sport,
+                                    ); // Aggiungi alla lista
                                   } else {
-                                    _selectedSports.remove(sport); // Rimuovi dalla lista
+                                    _selectedSports.remove(
+                                      sport,
+                                    ); // Rimuovi dalla lista
                                   }
                                 });
-                                setModalState(() {}); // Forza il refresh visivo della tendina
+                                setModalState(
+                                  () {},
+                                ); // Forza il refresh visivo della tendina
                                 _syncMarkers(); // Aggiorna i marker sulla mappa
                               },
                               selectedColor: sportColor.withValues(alpha: 0.2),
                               side: BorderSide(
-                                color: isSelected ? sportColor : Colors.grey.shade300,
-                                width: 1.0, 
+                                color: isSelected
+                                    ? sportColor
+                                    : Colors.grey.shade300,
+                                width: 1.0,
                               ),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                               labelStyle: TextStyle(
                                 color: isSelected ? sportColor : Colors.black87,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
                               ),
-                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
                             ),
                           );
                         }).toList(),
@@ -420,7 +463,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     // ALTRE IMPOSTAZIONI (Satellite e GPS)
                     ListTile(
-                      leading: Icon(_isSatellite ? Icons.map : Icons.satellite_alt),
+                      leading: Icon(
+                        _isSatellite ? Icons.map : Icons.satellite_alt,
+                      ),
                       title: Text(Translator.of('satellite_view')),
                       trailing: Switch(
                         value: _isSatellite,
@@ -476,11 +521,25 @@ class _HomeScreenState extends State<HomeScreen> {
           child: SafeArea(
             child: FloatingActionButton.small(
               heroTag: "refreshSearchBtn",
-              backgroundColor: _showSearchButton ? Theme.of(context).colorScheme.primary : Colors.white,
+              backgroundColor: _showSearchButton
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.white,
               onPressed: _isLoading ? null : _fetchMultiSportCourts,
-              child: _isLoading 
-                ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: _showSearchButton ? Colors.white : null))
-                : Icon(Icons.refresh, color: _showSearchButton ? Colors.white : Theme.of(context).colorScheme.primary),
+              child: _isLoading
+                  ? SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: _showSearchButton ? Colors.white : null,
+                      ),
+                    )
+                  : Icon(
+                      Icons.refresh,
+                      color: _showSearchButton
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.primary,
+                    ),
             ),
           ),
         ),
@@ -492,7 +551,10 @@ class _HomeScreenState extends State<HomeScreen> {
           child: FloatingActionButton(
             mini: true,
             backgroundColor: Colors.white,
-            child: Icon(Icons.layers_outlined, color: Theme.of(context).colorScheme.primary),
+            child: Icon(
+              Icons.layers_outlined,
+              color: Theme.of(context).colorScheme.primary,
+            ),
             onPressed: () => _showMapSettings(context), // Apre la tendina
           ),
         ),
@@ -507,9 +569,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Wrap(
-                    spacing: 8, runSpacing: 8, alignment: WrapAlignment.center,
+                    spacing: 8,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.center,
                     children: _sportCounts.entries
-                        .where((e) => SportUtils.availableSports.contains(e.key))
+                        .where(
+                          (e) => SportUtils.availableSports.contains(e.key),
+                        )
                         .map((e) => SportBadge(sportKey: e.key, count: e.value))
                         .toList(),
                   ),
@@ -519,7 +585,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Colors.white,
                     icon: const Icon(Icons.format_list_bulleted),
-                    label: Text("${Translator.of('see_results')} (${_displayedMarkers.length})"),
+                    label: Text(
+                      "${Translator.of('see_results')} (${_displayedMarkers.length})",
+                    ),
                     onPressed: _openFieldsList,
                   ),
                 ],
@@ -533,9 +601,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildNavItem(int index, IconData icon) {
     bool isSelected = _currentIndex == index;
     return IconButton(
-      icon: Icon(icon, 
-        color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey[600],
-        size: 22
+      icon: Icon(
+        icon,
+        color: isSelected
+            ? Theme.of(context).colorScheme.primary
+            : Colors.grey[600],
+        size: 22,
       ),
       onPressed: () => setState(() => _currentIndex = index),
     );
@@ -546,13 +617,13 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       extendBody: true,
       key: _scaffoldKey,
-      
+
       // IL TASTO CENTRALE (HOME/MAPPA)
       floatingActionButton: FloatingActionButton(
         heroTag: "homeBtn",
         shape: const CircleBorder(),
-        backgroundColor: _currentIndex == 2 
-            ? Theme.of(context).colorScheme.primary 
+        backgroundColor: _currentIndex == 2
+            ? Theme.of(context).colorScheme.primary
             : Colors.grey[300],
         onPressed: () => setState(() => _currentIndex = 2),
         child: const Icon(Icons.map, color: Colors.white, size: 26),
@@ -562,7 +633,8 @@ class _HomeScreenState extends State<HomeScreen> {
       // LA TOOLBAR IN BASSO
       bottomNavigationBar: BottomAppBar(
         height: 60,
-        shape: const CircularNotchedRectangle(), // Crea l'incavo per il tasto mappa
+        shape:
+            const CircularNotchedRectangle(), // Crea l'incavo per il tasto mappa
         notchMargin: 6.0,
         padding: EdgeInsets.zero,
         clipBehavior: Clip.antiAlias,
@@ -581,10 +653,10 @@ class _HomeScreenState extends State<HomeScreen> {
       body: IndexedStack(
         index: _currentIndex,
         children: [
-          const BookingsScreen(),                     // Bookings Screen    
-          const CommunityScreen(),                    // Community Screen
-          _buildMapBody(),                            // Maps Screen
-          const ChatListScreen(),                     // Chat List Screen
+          const BookingsScreen(), // Bookings Screen
+          const CommunityScreen(), // Community Screen
+          _buildMapBody(), // Maps Screen
+          const ChatListScreen(), // Chat List Screen
           ProfileScreen(
             currentLang: Translator.currentLanguage,
             currentThemeMode: widget.currentThemeMode,
@@ -593,7 +665,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onThemeChanged: widget.onThemeChanged,
             onNavChanged: widget.onNavChanged,
             onClearCache: _clearCacheAndMarkers,
-          ),                      // Profile Screen
+          ), // Profile Screen
         ],
       ),
     );

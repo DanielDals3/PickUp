@@ -6,10 +6,11 @@ import 'package:pickup/services/translator_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/home_screen.dart';
 
-final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();  
+  WidgetsFlutterBinding.ensureInitialized();
 
   final prefs = await SharedPreferences.getInstance();
 
@@ -21,7 +22,7 @@ void main() async {
 
   // --- CARICAMENTO NAVIGATORE ---
   String? savedNav = prefs.getString('preferred_nav');
-  
+
   // 2. Se è la prima volta (null), decidiamo in base al sistema operativo
   if (savedNav == null) {
     if (Platform.isIOS) {
@@ -35,16 +36,18 @@ void main() async {
 
   // --- CARICAMENTO LINGUA ---
   String? savedLanguage = prefs.getString('language_code');
-  Locale? initialLocale; 
+  Locale? initialLocale;
   if (savedLanguage != null && savedLanguage != 'system') {
     initialLocale = Locale(savedLanguage);
   }
-  
-  runApp(MyApp(
-    initialThemeMode: initialTheme, 
-    initialNav: savedNav,
-    initialLocale: initialLocale
-  ));
+
+  runApp(
+    MyApp(
+      initialThemeMode: initialTheme,
+      initialNav: savedNav,
+      initialLocale: initialLocale,
+    ),
+  );
 }
 
 class MyApp extends StatefulWidget {
@@ -52,7 +55,12 @@ class MyApp extends StatefulWidget {
   final String initialNav;
   final Locale? initialLocale;
 
-  const MyApp({super.key, required this.initialThemeMode, required this.initialNav, required this.initialLocale});
+  const MyApp({
+    super.key,
+    required this.initialThemeMode,
+    required this.initialNav,
+    required this.initialLocale,
+  });
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -101,10 +109,10 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-
     if (_locale == null) {
       // Prende la lingua del dispositivo (es. 'it' o 'en')
-      final deviceLocale = WidgetsBinding.instance.platformDispatcher.locale.languageCode;
+      final deviceLocale =
+          WidgetsBinding.instance.platformDispatcher.locale.languageCode;
       // Se il device è in una lingua che non abbiamo, usiamo 'it' come fallback
       Translator.currentLanguage = (deviceLocale == 'en') ? 'en' : 'it';
     } else {
@@ -114,18 +122,15 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       scaffoldMessengerKey: scaffoldMessengerKey,
       debugShowCheckedModeBanner: false,
-      
+
       locale: _locale,
-      supportedLocales: const [
-        Locale('it', 'IT'),
-        Locale('en', 'US'),
-      ],
+      supportedLocales: const [Locale('it', 'IT'), Locale('en', 'US')],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      
+
       themeMode: _appThemeMode,
 
       // TEMA CHIARO
@@ -140,7 +145,7 @@ class _MyAppState extends State<MyApp> {
           brightness: Brightness.light,
         ),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF00C853), 
+          backgroundColor: Color(0xFF00C853),
           foregroundColor: Colors.white,
           centerTitle: true,
           elevation: 2,

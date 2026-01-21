@@ -1,0 +1,160 @@
+import 'package:flutter/material.dart';
+import 'package:pickup/pages/login_page.dart';
+import '../services/translator_service.dart';
+import '../utils/app_utils.dart';
+
+class MainDrawer extends StatelessWidget {
+  final VoidCallback onOpenSettings;
+  final Locale? currentLocale;
+  final Function(String?) onLanguageChanged;
+
+  const MainDrawer({
+    super.key,
+    this.currentLocale,
+    required this.onOpenSettings,
+    required this.onLanguageChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final String currentLangCode = currentLocale?.languageCode ?? 'system';
+
+    return Drawer(
+      child: Column(
+        // Usiamo Column per poter mettere il footer in fondo
+        children: [
+          // HEADER
+          DrawerHeader(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            child: const Center(
+              child: Text(
+                'PickUp',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+
+          // CAMBIO LINGUA
+          ListTile(
+            leading: Icon(
+              Icons.language,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            title: Text(Translator.of('language')),
+            trailing: DropdownButton<String>(
+              value: currentLangCode,
+              underline: const SizedBox(),
+              onChanged: (String? newValue) {
+                onLanguageChanged(newValue);
+                Navigator.pop(context); // Chiude il drawer dopo il cambio
+              },
+              items: [
+                DropdownMenuItem(
+                  value: 'system',
+                  child: Text(
+                    Translator.of('system_language'),
+                  ), // Aggiungi questa chiave nel Translator
+                ),
+                const DropdownMenuItem(
+                  value: 'it',
+                  child: Text('Italiano 🇮🇹'),
+                ),
+                const DropdownMenuItem(
+                  value: 'en',
+                  child: Text('English 🇺🇸'),
+                ),
+              ],
+            ),
+          ),
+
+          const Spacer(),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.primary, // Usa il verde definito nel tema
+                foregroundColor: Colors.white, // Testo e icona bianchi
+                minimumSize: const Size(
+                  double.infinity,
+                  50,
+                ), // Lungo quanto la sidebar
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 2,
+              ),
+              onPressed: () {
+                // Chiudi il drawer dopo il click
+                Navigator.pop(context);
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                );
+              },
+              icon: const Icon(Icons.login),
+              label: const Text(
+                "LOGIN",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+          ),
+
+          const Divider(height: 1),
+
+          // IMPOSTAZIONI
+          ListTile(
+            leading: Icon(
+              Icons.settings,
+              color: Theme.of(context).colorScheme.secondary,
+            ),
+            title: Text(Translator.of('settings')),
+            onTap: () {
+              Navigator.pop(context); // Chiude il drawer
+              onOpenSettings(); // Chiama la funzione della Home
+            },
+          ),
+
+          const Divider(height: 1),
+
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "Developed by",
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    "CONSULTITS",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                      color: Colors.blueGrey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ], // Fine della Column del Drawer
+      ),
+    );
+  }
+}
