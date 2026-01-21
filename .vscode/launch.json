@@ -1,0 +1,28 @@
+{
+    // Usare IntelliSense per informazioni sui possibili attributi.
+    // Al passaggio del mouse vengono visualizzate le descrizioni degli attributi esistenti.
+    // Per altre informazioni, visitare: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "PickUp.Frontend",
+            "cwd": "PickUp.Frontend",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "PickUp.Frontend (profile mode)",
+            "cwd": "PickUp.Frontend",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "PickUp.Frontend (release mode)",
+            "cwd": "PickUp.Frontend",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        }
+    ]
+}
