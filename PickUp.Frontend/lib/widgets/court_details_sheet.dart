@@ -262,29 +262,6 @@ class CourtDetailsSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildNavigationButton(BuildContext context) => ElevatedButton.icon(
-    style: ElevatedButton.styleFrom(
-      backgroundColor: Theme.of(context).colorScheme.primary,
-      minimumSize: const Size(double.infinity, 55),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      elevation: 0,
-    ),
-    onPressed: () => AppUtils.openMap(
-      court.position.latitude,
-      court.position.longitude,
-      preferredNav,
-    ),
-    icon: const Icon(Icons.directions, color: Colors.white),
-    label: Text(
-      Translator.of('take_me_here'),
-      style: const TextStyle(
-        color: Colors.white,
-        fontWeight: FontWeight.bold,
-        fontSize: 16,
-      ),
-    ),
-  );
-
   Widget _buildActionButtons(BuildContext context) {
     return Row(
       children: [

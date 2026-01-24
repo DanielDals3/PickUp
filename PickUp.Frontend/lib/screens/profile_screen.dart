@@ -1,8 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:pickup/screens/settings_dialog.dart';
 import 'package:pickup/services/translator_service.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
+import 'package:permission_handler/permission_handler.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   final String currentLang;
   final ThemeMode currentThemeMode;
   final String currentNav;
@@ -23,39 +27,128 @@ class ProfileScreen extends StatelessWidget {
   });
 
   @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  File? _imageFile; // Variabile dove salveremo temporaneamente la foto scelta
+  final ImagePicker _picker = ImagePicker();
+
+  // Funzione per scattare o scegliere la foto
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: source,
+        maxWidth: 800, // Comprimiamo l'immagine per non appesantire il DB dopo
+        imageQuality: 85,
+      );
+
+      if (pickedFile != null) {
+        setState(() {
+          _imageFile = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      debugPrint("Errore selezione immagine: $e");
+    }
+  }
+
+  Future<void> uploadAvatar(File imageFile) async {
+    var request = http.MultipartRequest(
+      'POST', 
+      Uri.parse('http://tuo-ip-server:3000/users/upload-avatar')
+    );
+    
+    // 'file' deve essere uguale al nome dentro @UseInterceptors(FileInterceptor('file'))
+    request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+    
+    var response = await request.send();
+    
+    if (response.statusCode == 201) {
+      print('Immagine caricata correttamente!');
+    }
+  }
+
+  // Menu a comparsa dal basso
+  void _showPickerMenu() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Galleria'),
+              onTap: () async {
+                Navigator.pop(context);
+                
+                bool canOpen = false;
+                if (Platform.isAndroid || Platform.isIOS) {
+                  // Su Mobile chiediamo il permesso
+                  var status = await Permission.photos.request();
+                  canOpen = status.isGranted;
+                } else {
+                  // Su macOS/Windows/Linux i permessi sono gestiti dalla Sandbox
+                  canOpen = true; 
+                }
+
+                if (canOpen) _pickImage(ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Fotocamera'),
+              onTap: () async {
+                Navigator.pop(context);
+
+                bool canOpen = false;
+                if (Platform.isAndroid || Platform.isIOS) {
+                  var status = await Permission.camera.request();
+                  canOpen = status.isGranted;
+                } else {
+                  canOpen = true;
+                }
+
+                if (canOpen) _pickImage(ImageSource.camera);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start, // Allinea il titolo a sinistra
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 1. TITOLO GRANDE
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 20, 8, 10), // Ridotto padding destro per l'icona
+                padding: const EdgeInsets.fromLTRB(16, 20, 8, 10),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      Translator.of('profile'), // Usa il tuo Translator anche qui!
+                      Translator.of('profile'),
                       style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
                     ),
                     IconButton(
                       icon: const Icon(Icons.settings_outlined, size: 28),
-                      onPressed: () {
-                        // Qui richiami il tuo SettingsDialog
-                        SettingsDialog.show(
-                          context,
-                          currentThemeMode: currentThemeMode,
-                          currentNav: currentNav,
-                          currentLang: currentLang,
-                          onThemeChanged: onThemeChanged,
-                          onNavChanged: onNavChanged,
-                          onLangChanged: onLangChanged,
-                          onClearCache: onClearCache,
-                        );
-                      },
+                      onPressed: () => SettingsDialog.show(
+                        context,
+                        currentThemeMode: widget.currentThemeMode,
+                        currentNav: widget.currentNav,
+                        currentLang: widget.currentLang,
+                        onThemeChanged: widget.onThemeChanged,
+                        onNavChanged: widget.onNavChanged,
+                        onLangChanged: widget.onLangChanged,
+                        onClearCache: widget.onClearCache,
+                      ),
                     ),
                   ],
                 ),
@@ -63,7 +156,7 @@ class ProfileScreen extends StatelessWidget {
 
               const SizedBox(height: 10),
 
-              // 2. HEADER CON FOTO E INFO
+              // 2. HEADER CON FOTO DINAMICA
               Center(
                 child: Column(
                   children: [
@@ -72,16 +165,21 @@ class ProfileScreen extends StatelessWidget {
                         CircleAvatar(
                           radius: 55,
                           backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                          child: const Icon(Icons.person, size: 60, color: Colors.grey),
+                          backgroundImage: _imageFile != null ? FileImage(_imageFile!) : null,
+                          child: _imageFile == null
+                              ? const Icon(Icons.person, size: 60, color: Colors.grey)
+                              : null,
                         ),
-                        // Tasto rapido per cambiare foto
                         Positioned(
                           bottom: 0,
                           right: 0,
-                          child: CircleAvatar(
-                            radius: 18,
-                            backgroundColor: Theme.of(context).colorScheme.primary,
-                            child: const Icon(Icons.camera_alt, size: 18, color: Colors.white),
+                          child: GestureDetector(
+                            onTap: _showPickerMenu, // Cliccando sull'iconcina camera
+                            child: CircleAvatar(
+                              radius: 18,
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                              child: const Icon(Icons.camera_alt, size: 18, color: Colors.white),
+                            ),
                           ),
                         ),
                       ],
@@ -95,57 +193,16 @@ class ProfileScreen extends StatelessWidget {
                   ],
                 ),
               ),
-
+              
               const SizedBox(height: 30),
-
-              // 3. STATISTICHE
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildStatColumn("Partite", "24"),
-                      _buildStatDivider(),
-                      _buildStatColumn("Vinte", "18"),
-                      _buildStatDivider(),
-                      _buildStatColumn("Feedback", "4.9"),
-                    ],
-                  ),
-                ),
-              ),
-
+              
+              // ... Resto dei tuoi widget (Statistiche, Sport, ecc.) ...
+              _buildStatsSection(),
               const SizedBox(height: 30),
-
-              // 4. SEZIONE SPORT
-              _buildSectionTitle("I miei Sport"),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    _buildSportBadge(context, Icons.sports_soccer, "Calcio"),
-                    _buildSportBadge(context, Icons.sports_tennis, "Tennis"),
-                    _buildSportBadge(context, Icons.sports_volleyball, "Volley"),
-                  ],
-                ),
-              ),
-
+              _buildSportsSection(),
               const SizedBox(height: 30),
-
-              // 5. LISTA MENU
-              _buildSectionTitle("Impostazioni"),
-              _buildMenuItem(Icons.history, "Storico partite"),
-              _buildMenuItem(Icons.notifications_none, "Notifiche"),
-              _buildMenuItem(Icons.logout, "Esci", isDestructive: true),
-
-              const SizedBox(height: 100), // Padding per la BottomNavBar
+              _buildMenuSection(),
+              const SizedBox(height: 100),
             ],
           ),
         ),
@@ -153,7 +210,61 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  // --- WIDGETS DI SUPPORTO ---
+  Widget _buildStatsSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildStatColumn("Partite", "24"),
+            _buildStatDivider(),
+            _buildStatColumn("Vinte", "18"),
+            _buildStatDivider(),
+            _buildStatColumn("Feedback", "4.9"),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSportsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle("I miei Sport"),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _buildSportBadge(context, Icons.sports_soccer, "Calcio"),
+              _buildSportBadge(context, Icons.sports_tennis, "Tennis"),
+              _buildSportBadge(context, Icons.sports_volleyball, "Volley"),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMenuSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle("Impostazioni"),
+        _buildMenuItem(Icons.history, "Storico partite"),
+        _buildMenuItem(Icons.notifications_none, "Notifiche"),
+        _buildMenuItem(Icons.logout, "Esci", isDestructive: true),
+      ],
+    );
+  }
 
   Widget _buildStatColumn(String label, String value) {
     return Column(

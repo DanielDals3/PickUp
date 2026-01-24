@@ -59,4 +59,11 @@ export class User {
     default: 0,
   })
   status: number;
+
+  @Column({
+    type: 'varchar',
+    name: 'avatar_url',
+    nullable: true,
+  })
+  avatarUrl?: string;
 }

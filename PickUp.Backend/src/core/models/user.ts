@@ -7,4 +7,6 @@ export class User {
     birthday: Date;
     status: number;
     creationDate: Date;
+    password: string;
+    avatarUrl?: string;
 }

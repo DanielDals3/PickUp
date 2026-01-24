@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pickup/pages/login_page.dart';
 import '../services/translator_service.dart';
-import '../utils/app_utils.dart';
 
 class MainDrawer extends StatelessWidget {
   final VoidCallback onOpenSettings;

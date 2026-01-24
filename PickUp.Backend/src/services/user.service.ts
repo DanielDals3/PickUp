@@ -59,4 +59,18 @@ export class UserService {
 
     return await this.userRepository.delete(user.id);
   }
+
+  // user.service.ts
+  async updateAvatar(email: string, file: Express.Multer.File) {
+      // 1. Logica di upload (es. carichi su Supabase e ottieni l'URL)
+      const publicUrl = `https://tuo-bucket.supabase.co/storage/v1/object/public/avatars/${file.originalname}`;
+
+      // 2. Aggiorna il database usando TypeORM
+      await this.userRepository.update(
+          { email: email }, 
+          { avatarUrl: publicUrl }
+      );
+
+      return { url: publicUrl };
+  }
 }

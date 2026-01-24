@@ -53,6 +53,12 @@
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>PickUp needs your location to find the nearest courts.</string>
 	<key>LSApplicationQueriesSchemes</key>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Questa app ha bisogno dell'accesso alla galleria per aggiornare il profilo.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Questa app ha bisogno della fotocamera per scattare la tua foto profilo.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Questa app ha bisogno del microfono (opzionale per foto).</string>
 	<array>
 		<string>https</string>
 		<string>http</string>
