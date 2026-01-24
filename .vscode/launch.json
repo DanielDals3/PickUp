@@ -23,6 +23,23 @@
             "request": "launch",
             "type": "dart",
             "flutterMode": "release"
+        },
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "PickUp.Backend (Chrome)",
+            "url": "http://localhost:8080",
+            "webRoot": "${workspaceFolder}"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "🚀 Avvia Frontend + Backend",
+            "configurations": [
+                "PickUp.Frontend",
+                "PickUp.Backend (Chrome)"
+            ],
+            "stopAll": true
         }
     ]
 }
