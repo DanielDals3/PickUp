@@ -2,13 +2,16 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:pickup/core/api_config.dart';
 import 'package:pickup/models/sport.dart';
+import 'package:pickup/pages/login_page.dart';
 import 'package:pickup/screens/settings_dialog.dart';
+import 'package:pickup/services/auth_service.dart';
 import 'package:pickup/services/sport_service.dart';
 import 'package:pickup/services/translator_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:pickup/utils/sport_utils.dart';
+import 'package:provider/provider.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String currentLang;
@@ -40,14 +43,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<Sport> userSports = [];      // Sport dell'utente
   List<Sport> allSports = [];       // Tutti gli sport disponibili
   bool isLoading = true;
+  bool _wasLoggedIn = false;  // Per tracciare i cambiamenti di stato del login/logout
 
   @override
   void initState() {
     super.initState();
-    _loadData();
   }
 
   Future<void> _loadData() async {
+    if (!mounted) return;
+
+    final auth = Provider.of<AuthService>(context, listen: false);
+    if (!auth.isLoggedIn) return;
+
     try {
       // Qui chiamerai i tuoi servizi API reali
       // const userId = "123";
@@ -62,6 +70,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
     } catch (e) {
       print("Errore caricamento: $e");
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -172,8 +181,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _buildGuestView() {
+    return Scaffold(
+      body: Padding( // Corretto Center con padding non valido
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.account_circle_outlined,
+              size: 100,
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              Translator.of('profile_guest_title'),
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              Translator.of('profile_guest_subtitle'),
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 50),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                );
+              },
+              child: Text(Translator.of('login_btn').toUpperCase()),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final auth = Provider.of<AuthService>(context);
+
+    // Carica i dati solo se passa da NON loggato a LOGGATO
+    if (auth.isLoggedIn && !_wasLoggedIn) {
+      _wasLoggedIn = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _loadData();
+      });
+    } 
+    // Se l'utente fa logout, resettiamo il flag per il prossimo login
+    else if (!auth.isLoggedIn && _wasLoggedIn) {
+      _wasLoggedIn = false;
+    }
+
+    if (!auth.isLoggedIn) {
+      return _buildGuestView();
+    }
+
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
@@ -255,7 +325,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 30),
               _buildSportsSection(),
               const SizedBox(height: 30),
-              _buildMenuSection(),
+              _buildMenuSection(auth),
               const SizedBox(height: 100),
             ],
           ),
@@ -426,14 +496,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildMenuSection() {
+  Widget _buildMenuSection(AuthService auth) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionTitle(Translator.of('settings')),
         _buildMenuItem(Icons.history, "Storico partite"),
         _buildMenuItem(Icons.notifications_none, "Notifiche"),
-        _buildMenuItem(Icons.logout, "Esci", isDestructive: true),
+        _buildMenuItem(
+          Icons.logout, 
+          "Esci", 
+          isDestructive: true,
+          onTap: () async {
+            await auth.logout();
+            // Lo stato cambierà e il build mostrerà automaticamente la GuestView
+          },
+        ), 
       ],
     );
   }
@@ -458,12 +536,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildMenuItem(IconData icon, String title, {bool isDestructive = false}) {
+  Widget _buildMenuItem(IconData icon, String title, {bool isDestructive = false, VoidCallback? onTap}) {
     return ListTile(
       leading: Icon(icon, color: isDestructive ? Colors.red : null),
       title: Text(title, style: TextStyle(color: isDestructive ? Colors.red : null, fontWeight: FontWeight.w500)),
       trailing: const Icon(Icons.chevron_right, size: 20),
-      onTap: () {},
+      onTap: onTap,
     );
   }
 }

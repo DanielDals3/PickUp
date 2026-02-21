@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:pickup/pages/register_page.dart';
+import 'package:pickup/services/auth_service.dart';
+import 'package:pickup/services/translator_service.dart';
+import 'package:provider/provider.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -14,10 +17,44 @@ class _LoginPageState extends State<LoginPage> {
 
   bool _isLoading = false;
 
+  Future<void> _handleLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(Translator.of('insert_valid_credentials'))),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // 1. SIMULAZIONE CHIAMATA API (In futuro userai http.post verso NestJS)
+      await Future.delayed(const Duration(seconds: 2)); 
+      String mockToken = "JWT_TOKEN_RICEVUTO_DA_NESTJS";
+
+      if (!mounted) return;
+
+      await Provider.of<AuthService>(context, listen: false).login(mockToken);
+
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Errore durante il login: $e")),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Area personale'), centerTitle: true),
+      appBar: AppBar(title: Text(Translator.of('personal_area')), centerTitle: true),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
@@ -30,7 +67,7 @@ class _LoginPageState extends State<LoginPage> {
             ),
             const SizedBox(height: 20),
             Text(
-              "Bentornato su PickUp",
+              Translator.of('welcome_back'),
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -42,7 +79,7 @@ class _LoginPageState extends State<LoginPage> {
             TextField(
               controller: _emailController,
               decoration: InputDecoration(
-                labelText: "Email o Nome Utente",
+                labelText: Translator.of('email_or_username'),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.0),
                 ),
@@ -56,7 +93,7 @@ class _LoginPageState extends State<LoginPage> {
               controller: _passwordController,
               obscureText: true, // Nasconde i caratteri della password
               decoration: InputDecoration(
-                labelText: "Password",
+                labelText: Translator.of('password'),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -74,14 +111,10 @@ class _LoginPageState extends State<LoginPage> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              onPressed: () {
-                print("Tentativo di login con: ${_emailController.text}");
-                // Qui in futuro andrà la logica per verificare le credenziali
-              },
-              child: const Text(
-                "ACCEDI",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
+              onPressed: _isLoading ? null : _handleLogin,
+              child: _isLoading 
+                ? const CircularProgressIndicator(color: Colors.white) 
+                : Text(Translator.of('login_btn'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             ),
             const SizedBox(height: 15),
 
@@ -95,16 +128,13 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
               onPressed: () {
-                // Chiudi il drawer dopo il click
-                // Navigator.pop(context);
-
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const RegisterPage()),
                 );
               },
               child: Text(
-                "NON HAI UN ACCOUNT? ISCRIVITI",
+                "${Translator.of('no_account')}${Translator.of('register_here')}",
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.primary,
                   fontWeight: FontWeight.bold,

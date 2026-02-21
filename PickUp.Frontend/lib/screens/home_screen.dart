@@ -549,6 +549,7 @@ class _HomeScreenState extends State<HomeScreen> {
           right: 15,
           bottom: 80, // Sopra la navbar
           child: FloatingActionButton(
+            heroTag: "mapSettingsBtn",
             mini: true,
             backgroundColor: Colors.white,
             child: Icon(
@@ -581,7 +582,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 12),
                   FloatingActionButton.extended(
-                    heroTag: "listBtn",
+                    heroTag: "resultsBtn",
                     backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Colors.white,
                     icon: const Icon(Icons.format_list_bulleted),

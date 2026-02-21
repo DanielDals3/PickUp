@@ -1,7 +1,7 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:pickup/services/translator_service.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -48,12 +48,12 @@ class _RegisterPageState extends State<RegisterPage> {
     if (_firstNameController.text.isEmpty ||
         _lastNameController.text.isEmpty ||
         _emailController.text.isEmpty) {
-      _showError("Nome, Cognome ed Email sono obbligatori");
+      _showError(Translator.of('name_surname_email_required'));
       return;
     }
 
     if (_passwordController.text != _confirmPasswordController.text) {
-      _showError("Le password non coincidono!");
+      _showError(Translator.of('passwords_do_not_match'));
       return;
     }
 
@@ -85,8 +85,8 @@ class _RegisterPageState extends State<RegisterPage> {
 
       if (response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Account creato con successo!"),
+          SnackBar(
+            content: Text(Translator.of('account_created_successfully')),
             backgroundColor: Colors.green,
           ),
         );
@@ -137,13 +137,13 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Crea Account")),
+      appBar: AppBar(title: Text(Translator.of('create_account'))),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           children: [
             Text(
-              "Unisciti a PickUp",
+              Translator.of('sign_up_title'),
               style: TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.bold,
@@ -158,7 +158,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 Expanded(
                   child: _buildTextField(
                     _firstNameController,
-                    "Nome",
+                    Translator.of('name'),
                     Icons.person_outline,
                   ),
                 ),
@@ -166,7 +166,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 Expanded(
                   child: _buildTextField(
                     _lastNameController,
-                    "Cognome",
+                    Translator.of('surname'),
                     Icons.person_outline,
                   ),
                 ),
@@ -175,7 +175,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
             _buildTextField(
               _emailController,
-              "Email",
+              Translator.of('email'),
               Icons.email_outlined,
               type: TextInputType.emailAddress,
             ),
@@ -183,7 +183,7 @@ class _RegisterPageState extends State<RegisterPage> {
             // Data di nascita con selettore
             _buildTextField(
               _birthDateController,
-              "Data di Nascita",
+              Translator.of('birth_date'),
               Icons.cake_outlined,
               readOnly: true,
               onTap: () => _selectDate(context),
@@ -191,7 +191,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
             _buildTextField(
               _addressController,
-              "Indirizzo",
+              Translator.of('address'),
               Icons.home_outlined,
             ),
 
@@ -203,7 +203,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   flex: 2,
                   child: _buildTextField(
                     _cityController,
-                    "Città",
+                    Translator.of('city'),
                     Icons.location_city,
                   ),
                 ),
@@ -212,26 +212,26 @@ class _RegisterPageState extends State<RegisterPage> {
                   flex: 1,
                   child: _buildTextField(
                     _provinceController,
-                    "Prov.",
+                    Translator.of('county'),
                     Icons.map_outlined,
                   ),
                 ),
               ],
             ),
 
-            _buildTextField(_countryController, "Stato", Icons.public),
+            _buildTextField(_countryController, Translator.of('country'), Icons.public),
 
             const Divider(height: 40),
 
             _buildTextField(
               _passwordController,
-              "Password",
+              Translator.of('password'),
               Icons.lock_outline,
               isPassword: true,
             ),
             _buildTextField(
               _confirmPasswordController,
-              "Conferma Password",
+              Translator.of('confirm_password'),
               Icons.lock_reset,
               isPassword: true,
             ),
@@ -250,8 +250,8 @@ class _RegisterPageState extends State<RegisterPage> {
               onPressed: _isLoading ? null : _performRegister,
               child: _isLoading
                   ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text(
-                      "REGISTRATI",
+                  : Text(
+                      Translator.of('register_btn'),
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
             ),

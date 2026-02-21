@@ -1,9 +1,10 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:pickup/services/auth_service.dart';
 import 'package:pickup/services/sport_service.dart';
 import 'package:pickup/services/translator_service.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/home_screen.dart';
 
@@ -45,11 +46,15 @@ void main() async {
   await SportService().initSports();
 
   runApp(
-    MyApp(
-      initialThemeMode: initialTheme,
-      initialNav: savedNav,
-      initialLocale: initialLocale,
-    ),
+    ChangeNotifierProvider(
+      create: (context) => AuthService(),
+      child:
+        MyApp(
+          initialThemeMode: initialTheme,
+          initialNav: savedNav,
+          initialLocale: initialLocale,
+        ),
+    )
   );
 }
 
@@ -125,7 +130,6 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       scaffoldMessengerKey: scaffoldMessengerKey,
       debugShowCheckedModeBanner: false,
-
       locale: _locale,
       supportedLocales: const [Locale('it', 'IT'), Locale('en', 'US')],
       localizationsDelegates: const [
