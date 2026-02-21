@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:pickup/services/sport_service.dart';
 import 'package:pickup/services/translator_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class SportUtils {
   static List<String> get availableSports => _availableSports;
 
-  static final List<String> _availableSports = ['basketball', 'soccer', 'tennis', 'volleyball', 'beachvolleyball',
-    'fitness', 'climbing', 'swimming', 'yoga', 'gymnastics', 'cycling', 'running', 'table_tennis', 'skiing', 
-     'padel', 'gym', 'football', 'snowboarding', 'rugby_union', 'rugby', 'rugby_league', 'american_football',
-     'baseball', 'softball', 'skateboard', 'skateboarding', 'golf', 'martial_arts', 'karate', 'judo', 'equestrian',
-     'horse_riding', 'hockey', 'ice_hockey', 'boules', 'bocce', 'volley', 'boxing', 'calisthenics','snowboard',
-     'roller_hockey' ];
+  static final List<String> _availableSports = SportService().allSports.map((s) => s.name).toList();
 
   static IconData getIconData(String sport) {
     switch (sport.trim().toLowerCase()) {

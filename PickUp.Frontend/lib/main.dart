@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:pickup/services/sport_service.dart';
 import 'package:pickup/services/translator_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/home_screen.dart';
@@ -40,6 +41,8 @@ void main() async {
   if (savedLanguage != null && savedLanguage != 'system') {
     initialLocale = Locale(savedLanguage);
   }
+
+  await SportService().initSports();
 
   runApp(
     MyApp(

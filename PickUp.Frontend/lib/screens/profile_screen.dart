@@ -1,10 +1,14 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:pickup/core/api_config.dart';
+import 'package:pickup/models/sport.dart';
 import 'package:pickup/screens/settings_dialog.dart';
+import 'package:pickup/services/sport_service.dart';
 import 'package:pickup/services/translator_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
+import 'package:pickup/utils/sport_utils.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String currentLang;
@@ -33,6 +37,33 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   File? _imageFile; // Variabile dove salveremo temporaneamente la foto scelta
   final ImagePicker _picker = ImagePicker();
+  List<Sport> userSports = [];      // Sport dell'utente
+  List<Sport> allSports = [];       // Tutti gli sport disponibili
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      // Qui chiamerai i tuoi servizi API reali
+      // const userId = "123";
+      // val user = await apiService.getUser(userId);
+      var sports = SportService().allSports;
+
+      setState(() {
+        // Esempio dati mockati (sostituisci con chiamate http)
+        userSports = [Sport(id: 1, name: "Calcio")];
+        allSports = sports;
+        isLoading = false;
+      });
+    } catch (e) {
+      print("Errore caricamento: $e");
+    }
+  }
 
   // Funzione per scattare o scegliere la foto
   Future<void> _pickImage(ImageSource source) async {
@@ -56,7 +87,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> uploadAvatar(File imageFile) async {
     var request = http.MultipartRequest(
       'POST', 
-      Uri.parse('http://tuo-ip-server:3000/users/upload-avatar')
+      Uri.parse('${ApiConfig.url}/users/upload-avatar')
     );
     
     // 'file' deve essere uguale al nome dentro @UseInterceptors(FileInterceptor('file'))
@@ -112,6 +143,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 if (canOpen) _pickImage(ImageSource.camera);
               },
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatsSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildStatColumn("Partite", "24"),
+            _buildStatDivider(),
+            _buildStatColumn("Vinte", "18"),
+            _buildStatDivider(),
+            _buildStatColumn("Feedback", "4.9"),
           ],
         ),
       ),
@@ -210,47 +264,165 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildStatsSection() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildStatColumn("Partite", "24"),
-            _buildStatDivider(),
-            _buildStatColumn("Vinte", "18"),
-            _buildStatDivider(),
-            _buildStatColumn("Feedback", "4.9"),
-          ],
-        ),
+  void _showAddSportDialog() {
+    List<Sport> tempSelected = List.from(userSports);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Container(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                top: 20,
+                left: 20,
+                right: 20,
+              ),
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.8,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // --- TITOLO ---
+                  Text(
+                    Translator.of('choose_your_sports'),
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // --- LISTA SCROLLABILE ---
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: allSports.map((sport) {
+                          final bool isSelected = tempSelected.any((s) => s.id == sport.id);
+                          final Color sportColor = SportUtils.getIconColor(sport.name);
+
+                          return FilterChip(
+                            label: Text(Translator.of(sport.name.toLowerCase())),
+                            selected: isSelected,
+                            onSelected: (bool selected) {
+                              setModalState(() {
+                                if (selected) {
+                                  if (!tempSelected.any((s) => s.id == sport.id)) {
+                                    tempSelected.add(sport);
+                                  }
+                                } else {
+                                  tempSelected.removeWhere((s) => s.id == sport.id);
+                                }
+                              });
+                            },
+                            // Estetica migliorata
+                            avatar: Icon(
+                              SportUtils.getIconData(sport.name),
+                              size: 18,
+                              color: isSelected ? Colors.white : sportColor,
+                            ),
+                            selectedColor: sportColor,
+                            checkmarkColor: Colors.white,
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // --- TASTO CONFERMA ---
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        // Qui aggiorniamo la UI principale
+                        setState(() {
+                          userSports = List.from(tempSelected);
+                        });
+                        
+                        // TODO: Invia la lista aggiornata al Backend
+                        // _updateSportsOnServer(userSports);
+                        
+                        Navigator.pop(context); // Chiude il dialog solo qui!
+                      },
+                      child: Text(
+                        Translator.of('confirm').toUpperCase(),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
   Widget _buildSportsSection() {
+    if (isLoading) return const Center(child: CircularProgressIndicator());
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle("I miei Sport"),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _buildSectionTitle(Translator.of('mysports')),
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline),
+              onPressed: _showAddSportDialog,
+            ),
+          ],
+        ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Wrap(
             spacing: 10,
             runSpacing: 10,
-            children: [
-              _buildSportBadge(context, Icons.sports_soccer, "Calcio"),
-              _buildSportBadge(context, Icons.sports_tennis, "Tennis"),
-              _buildSportBadge(context, Icons.sports_volleyball, "Volley"),
-            ],
+            children: userSports.map((sport) => _buildSportBadge(sport)).toList(),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildSportBadge(Sport sport) {
+    final Color sportColor = SportUtils.getIconColor(sport.name);
+
+    return Chip(
+      avatar: Icon(
+        SportUtils.getIconData(sport.name), 
+        size: 16, 
+        color: sportColor
+      ),
+      label: Text(
+        Translator.of(sport.name.toLowerCase()),
+        style: TextStyle(
+          color: sportColor.withValues(alpha: 0.9),
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      backgroundColor: sportColor.withValues(alpha: 0.1),
+      side: BorderSide(color: sportColor.withValues(alpha: 0.2)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
     );
   }
 
@@ -258,7 +430,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle("Impostazioni"),
+        _buildSectionTitle(Translator.of('settings')),
         _buildMenuItem(Icons.history, "Storico partite"),
         _buildMenuItem(Icons.notifications_none, "Notifiche"),
         _buildMenuItem(Icons.logout, "Esci", isDestructive: true),
@@ -283,25 +455,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       child: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-    );
-  }
-
-  Widget _buildSportBadge(BuildContext context, IconData icon, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(width: 8),
-          Text(label, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w600)),
-        ],
-      ),
     );
   }
 

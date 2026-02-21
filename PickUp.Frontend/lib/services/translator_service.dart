@@ -81,6 +81,10 @@ class Translator {
       'profile': 'Profilo',
       'save': 'Salva',
       'close': 'Chiudi',
+      'mysports': 'I miei sport',
+      'choose_your_sports': 'Scegli i tuoi sport',
+      'already_add_all_sports': 'Hai già aggiunto tutti gli sport disponibili',
+      'confirm': 'Conferma',
     },
     'en': {
       'system_language': 'System',
@@ -162,6 +166,10 @@ class Translator {
       'profile': 'Profile',
       'save': 'Save',
       'close': 'Close',
+      'mysports': 'My sports',
+      'choose_your_sports': 'Choose your sports',
+      'already_add_all_sports': 'You have already added all available sports',
+      'confirm': 'Confirm',
     }
   };
 
