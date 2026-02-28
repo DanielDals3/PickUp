@@ -50,6 +50,7 @@ export class User {
     type: 'varchar',
     nullable: false,
     default: '',
+    select: false, // Esclude la password dalle query di default
   })
   password: string;
 

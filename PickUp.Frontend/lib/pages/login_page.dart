@@ -1,4 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:pickup/core/api_config.dart';
 import 'package:pickup/pages/register_page.dart';
 import 'package:pickup/services/auth_service.dart';
 import 'package:pickup/services/translator_service.dart';
@@ -17,6 +21,12 @@ class _LoginPageState extends State<LoginPage> {
 
   bool _isLoading = false;
 
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
+
   Future<void> _handleLogin() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
@@ -31,21 +41,31 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _isLoading = true);
 
     try {
-      // 1. SIMULAZIONE CHIAMATA API (In futuro userai http.post verso NestJS)
-      await Future.delayed(const Duration(seconds: 2)); 
-      String mockToken = "JWT_TOKEN_RICEVUTO_DA_NESTJS";
+      // 1. CHIAMATA API PER LOGIN
+      final response = await http.post(
+        Uri.parse('${ApiConfig.url}/users/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'emailUsername': email,
+          'password': password,
+        }),
+      );
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        // 2. ESTRAZIONE DEL TOKEN
+        final data = jsonDecode(response.body);
+        String token = data['access_token'];
 
-      if (!mounted) return;
+        if (!mounted) return;
 
-      await Provider.of<AuthService>(context, listen: false).login(mockToken);
+        // 3. SALVATAGGIO TRAMITE PROVIDER
+        await Provider.of<AuthService>(context, listen: false).login(token);
 
-      if (mounted) {
-        Navigator.pop(context);
+        if (mounted) Navigator.pop(context);
+      } else {
+        _showError(Translator.of('invalid_credentials'));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Errore durante il login: $e")),
-      );
+      _showError("Errore durante il login: $e");
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

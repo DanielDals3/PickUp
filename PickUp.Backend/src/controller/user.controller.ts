@@ -12,6 +12,11 @@ export class UserController {
     return this.userService.register(dto);
   }
 
+  @Post('login') // Rotta finale: POST /users/login
+  async login(@Body() dto: { emailUsername: string, password: string }) {
+    return this.userService.login(dto.emailUsername, dto.password);
+  }
+
   @Get('getByEmail') // Rotta finale: GET /users/get/pippo@qualcosa
   async getAllUsers(@Query('email') email: string) {
     return this.userService.getUserByEmail(email);

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:pickup/core/api_config.dart';
 import 'package:pickup/services/translator_service.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -61,7 +62,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
     try {
       // NOTA: Se usi l'emulatore Android, 'localhost' va sostituito con '10.0.2.2'
-      final url = Uri.parse('http://10.0.2.2:3000/users/register');
+      final url = Uri.parse('${ApiConfig.url}/users/register');
 
       final response = await http.post(
         url,
