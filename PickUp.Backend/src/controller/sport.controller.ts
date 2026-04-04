@@ -1,5 +1,5 @@
 import { Controller, Get, InternalServerErrorException } from '@nestjs/common';
-import { SportService } from 'src/services/sport.service';
+import { SportService } from '../services/sport.service';
 
 @Controller('sports')
 export class SportController {

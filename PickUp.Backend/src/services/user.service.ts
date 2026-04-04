@@ -4,6 +4,7 @@ import { User } from '../core/models/user';
 import { Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+import 'multer';
 
 @Injectable()
 export class UserService {
