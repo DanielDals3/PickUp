@@ -6,6 +6,8 @@ import { User } from './core/entities/user.entity';
 import { UserModule } from './modules/user.module';
 import { SportModule } from './modules/sport.module';
 import { Sport } from './core/entities/sport.entity';
+import { Country } from './core/entities/country.entity';
+import { CountryModule } from './modules/country.module';
 
 @Module({
   imports: 
@@ -18,7 +20,7 @@ import { Sport } from './core/entities/sport.entity';
       username: 'postgres.nfiegjsfzwzydwkfrwig',
       password: '7TOB2TxJezLgIeAs',
       database: 'postgres',
-      entities: [User, Sport],
+      entities: [User, Sport, Country],
       // autoLoadEntities: true,
       // synchronize: true, // Da usare SOLO in sviluppo: crea le tabelle automaticamente in base al codice
       ssl: {
@@ -26,7 +28,8 @@ import { Sport } from './core/entities/sport.entity';
       },
     }),
     UserModule,
-    SportModule
+    SportModule,
+    CountryModule
   ],
   controllers: [AppController],
   providers: [AppService],

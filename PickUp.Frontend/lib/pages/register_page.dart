@@ -12,13 +12,16 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  List<dynamic> _countries = [];
+  String? _selectedCountryId;
+  bool _isLoadingCountries = true;
+
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _cityController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _provinceController = TextEditingController();
-  final TextEditingController _countryController = TextEditingController();
   final TextEditingController _birthDateController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
@@ -26,6 +29,45 @@ class _RegisterPageState extends State<RegisterPage> {
 
   bool _isLoading = false;
   DateTime? _selectedDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCountries();
+  }
+
+  Future<void> _fetchCountries() async {
+    try {
+      final response = await http.get(Uri.parse('${ApiConfig.url}/countries/getCountries'));
+      if (response.statusCode == 200) {
+        setState(() {
+          _countries = jsonDecode(response.body);
+          _isLoadingCountries = false;
+        });
+      }
+    } catch (e) {
+      print("Errore caricamento stati: $e");
+      setState(() => _isLoadingCountries = false);
+    }
+  }
+
+  Future<Iterable<Map<String, dynamic>>> _getCitySuggestions(String query) async {
+    if (query.length < 3) return const Iterable.empty();
+    
+    final url = Uri.parse(
+        'https://photon.komoot.io/api/?q=$query&limit=5');
+    
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200 || response.statusCode == 403) { // 403 è usato come "successo" per la lista dei paesi, anche se non è il codice ideale
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.cast<Map<String, dynamic>>(); // Converte la lista in mappe compatibili
+      }
+    } catch (e) {
+      debugPrint("Errore: $e");
+    }
+    return const Iterable.empty();
+  }
 
   // Funzione per selezionare la data di nascita
   Future<void> _selectDate(BuildContext context) async {
@@ -48,7 +90,8 @@ class _RegisterPageState extends State<RegisterPage> {
     // Validazione: controlliamo che i campi principali non siano vuoti
     if (_firstNameController.text.isEmpty ||
         _lastNameController.text.isEmpty ||
-        _emailController.text.isEmpty) {
+        _emailController.text.isEmpty ||
+        _selectedCountryId == null) {
       _showError(Translator.of('name_surname_email_required'));
       return;
     }
@@ -77,7 +120,7 @@ class _RegisterPageState extends State<RegisterPage> {
           'city': _cityController.text,
           'address': _addressController.text,
           'province': _provinceController.text,
-          'country': _countryController.text,
+          'countryId': int.parse(_selectedCountryId!),
           'birthDate': _selectedDate
               ?.toIso8601String(), // Inviamo la data in formato standard
           'password': _passwordController.text,
@@ -198,29 +241,103 @@ class _RegisterPageState extends State<RegisterPage> {
 
             // Città e Provincia affiancate
             // TODO fare in modo che dia dei suggerimenti automatici per città e provincia - fare in modo furbo, non scopito a codice
-            Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: _buildTextField(
-                    _cityController,
-                    Translator.of('city'),
-                    Icons.location_city,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  flex: 1,
-                  child: _buildTextField(
-                    _provinceController,
-                    Translator.of('county'),
-                    Icons.map_outlined,
-                  ),
-                ),
-              ],
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: RawAutocomplete<Map<String, dynamic>>( // Specifichiamo il tipo esatto invece di dynamic
+                optionsBuilder: (TextEditingValue textEditingValue) async {
+                  return await _getCitySuggestions(textEditingValue.text);
+                },
+                displayStringForOption: (Map<String, dynamic> option) {
+                  final address = option['address'] as Map<String, dynamic>? ?? {};
+                  return address['city']?.toString() ?? 
+                        address['town']?.toString() ?? 
+                        address['village']?.toString() ?? 
+                        option['display_name']?.toString() ?? "";
+                },
+                // CAMPO DI TESTO
+                fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                  return TextField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    decoration: InputDecoration(
+                      labelText: Translator.of('city'),
+                      prefixIcon: const Icon(Icons.location_city),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  );
+                },
+                // LA LISTA DEI SUGGERIMENTI (Risolve l'errore di layout)
+                optionsViewBuilder: (context, onSelected, options) {
+                  return Align(
+                    alignment: Alignment.topLeft,
+                    child: Material(
+                      elevation: 4.0,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        // Constraints risolve i problemi di "weight/width"
+                        constraints: BoxConstraints(
+                          maxHeight: 250, 
+                          maxWidth: MediaQuery.of(context).size.width - 48,
+                        ),
+                        child: ListView.builder(
+                          padding: EdgeInsets.zero,
+                          shrinkWrap: true,
+                          itemCount: options.length,
+                          itemBuilder: (BuildContext context, int index) {
+                            final option = options.elementAt(index);
+                            final address = option['address'] as Map<String, dynamic>? ?? {};
+                            
+                            final name = address['city']?.toString() ?? 
+                                        address['town']?.toString() ?? 
+                                        address['village']?.toString() ?? "Città";
+                            
+                            final sub = address['county']?.toString() ?? 
+                                        address['state']?.toString() ?? "";
+
+                            return ListTile(
+                              title: Text(name),
+                              subtitle: Text(sub),
+                              onTap: () => onSelected(option),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                onSelected: (selection) {
+                  setState(() {
+                    final address = selection['address'] as Map<String, dynamic>? ?? {};
+                    String cityName = address['city']?.toString() ?? 
+                                      address['town']?.toString() ?? 
+                                      address['village']?.toString() ?? "";
+                    String province = address['county']?.toString() ?? 
+                                      address['state']?.toString() ?? "";
+                    
+                    _cityController.text = cityName;
+                    _provinceController.text = province;
+                  });
+                },
+              ),
             ),
 
-            _buildTextField(_countryController, Translator.of('country'), Icons.public),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: DropdownButtonFormField<String>(
+                value: _selectedCountryId,
+                items: _countries.map((c) => DropdownMenuItem<String>(
+                  value: c['id'].toString(),
+                  child: Text(c['name']),
+                )).toList(),
+                onChanged: (val) => setState(() => _selectedCountryId = val),
+                decoration: InputDecoration(
+                  labelText: Translator.of('country'),
+                  prefixIcon: const Icon(Icons.public),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                hint: Text(_isLoadingCountries ? "Caricamento stati..." : "Seleziona Stato"),
+              ),
+            ),
 
             const Divider(height: 40),
 
