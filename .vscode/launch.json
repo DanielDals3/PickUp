@@ -1,7 +1,4 @@
 {
-    // Usare IntelliSense per informazioni sui possibili attributi.
-    // Al passaggio del mouse vengono visualizzate le descrizioni degli attributi esistenti.
-    // Per altre informazioni, visitare: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
@@ -25,11 +22,21 @@
             "flutterMode": "release"
         },
         {
-            "type": "chrome",
+            "type": "node",
             "request": "launch",
-            "name": "PickUp.Backend (Chrome)",
-            "url": "http://localhost:8080",
-            "webRoot": "${workspaceFolder}"
+            "name": "NestJS Dev Debug",
+            "runtimeExecutable": "node",
+            "args": [
+                "-r",
+                "ts-node/register",
+                "-r",
+                "tsconfig-paths/register",
+                "src/main.ts"
+            ],
+            "cwd": "${workspaceFolder}/PickUp.Backend",
+            "console": "integratedTerminal",
+            "restart": true,
+            "skipFiles": ["<node_internals>/**"]
         }
     ],
     "compounds": [
@@ -37,7 +44,7 @@
             "name": "🚀 Avvia Frontend + Backend",
             "configurations": [
                 "PickUp.Frontend",
-                "PickUp.Backend (Chrome)"
+                "NestJS Dev Debug"
             ],
             "stopAll": true
         }
