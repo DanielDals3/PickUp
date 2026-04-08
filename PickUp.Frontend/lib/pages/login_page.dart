@@ -45,12 +45,15 @@ class _LoginPageState extends State<LoginPage> {
       final response = await http.post(
         Uri.parse('${ApiConfig.url}/users/login'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'emailUsername': email,
-          'password': password,
-        }),
+        body: jsonEncode({'emailUsername': email, 'password': password}),
       );
       if (response.statusCode == 201 || response.statusCode == 200) {
+        // Il corpo della risposta è vuoto?
+        if (response.body.isEmpty) {
+          _showError("Errore: Il server non ha inviato dati.");
+          return;
+        }
+
         // 2. ESTRAZIONE DEL TOKEN
         final data = jsonDecode(response.body);
         String token = data['access_token'];
@@ -74,7 +77,10 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(Translator.of('personal_area')), centerTitle: true),
+      appBar: AppBar(
+        title: Text(Translator.of('personal_area')),
+        centerTitle: true,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
@@ -132,9 +138,15 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
               onPressed: _isLoading ? null : _handleLogin,
-              child: _isLoading 
-                ? const CircularProgressIndicator(color: Colors.white) 
-                : Text(Translator.of('login_btn'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              child: _isLoading
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : Text(
+                      Translator.of('login_btn'),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
             ),
             const SizedBox(height: 15),
 
