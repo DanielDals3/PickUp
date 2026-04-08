@@ -14,7 +14,8 @@ export class UserController {
 
   @Post('login') // Rotta finale: POST /users/login
   async login(@Body() dto: { emailUsername: string, password: string }) {
-    return this.userService.login(dto.emailUsername, dto.password);
+    const result = await this.userService.login(dto.emailUsername, dto.password);
+    return result;
   }
 
   @Get('getByEmail') // Rotta finale: GET /users/get/pippo@qualcosa
